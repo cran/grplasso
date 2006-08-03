@@ -1,0 +1,21 @@
+export(grpl.model,
+       LogReg, LinReg, PoissReg,
+       grpl.control)
+exportClasses("grpl.model")
+exportMethods("show")
+
+exportClasses("grpl.control")
+
+export(grplasso, lambdamax)
+
+S3method(grplasso, formula)
+S3method(grplasso, default)
+
+S3method(lambdamax, formula)
+S3method(lambdamax, default)
+
+S3method(plot, grplasso)
+S3method(print, grplasso)
+S3method(predict, grplasso)
+S3method(fitted, grplasso)
+
