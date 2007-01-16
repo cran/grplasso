@@ -121,8 +121,8 @@ predict.grplasso <- function(object, newdata,
   }else{ ## if the object comes from grplasso.default
     x <- as.matrix(newdata)
     pred <- x %*% coef(object)
-    if(any(object$offset != rep(0, nrow(x))))
-       warning("Possible offset not considered!")
+    if(any(object$offset != 0))
+      warning("Possible offset not considered!")
   }
     
   pred <- switch(type,

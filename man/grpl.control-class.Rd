@@ -21,6 +21,8 @@
     parameter "lambda" based on the parameter estimates
     corresponding to the previous value of the penalty
     parameter.}
+  \item{update.every}{Only used if update.hess = "lambda". E.g. set to 3
+    if you want to update the Hessian only every third grid point.}
   \item{\code{tol}}{convergence tolerance; the smaller the more precise.}
   \item{\code{lower}}{lower bound for the diagonal approximation of the
     corresponding block submatrix of the Hessian of the negative

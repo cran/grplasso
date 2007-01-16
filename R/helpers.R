@@ -16,9 +16,8 @@ create.design <- function(m, formula, nonpen  = ~ 1, data,
   ## also check the environments (is this the correct way ???)
   if(!inherits(formula, "formula") || length(formula) != 3)
     stop("Argument 'formula' is of wrong type or length")
-  
-  m$formula <-
-    if(any.nonpen){
+
+  if(any.nonpen){
       if(!inherits(nonpen, "formula"))
         stop("Argument 'nonpen' of wrong type")
 
@@ -43,12 +42,14 @@ create.design <- function(m, formula, nonpen  = ~ 1, data,
         
         environment(f) <- environment(formula)
       }else if (!is.gEnv(env.nonpen)){ ## if env. of 'nonpen' is not global
-                                       ## (but env. of 'formula' is, use
+                                       ## (but env. of 'formula' is), use
                                        ## env. of 'nonpen'
         environment(f) <- env.nonpen
       }
-      f
-    }
+      m$formula <- f
+  }else{
+    m$formula <- formula
+  }
   
   m$drop.unused.levels <- TRUE
   
@@ -205,11 +206,13 @@ lambdamax.default <- function(x, y, index, weights = rep(1, length(y)),
   
   ## Index vector of the penalized parameter groups
   ipen <- index[!is.na(index)]
+  
+  ## Table of degrees of freedom
   dict.pen <- sort(unique(ipen))
+  ipen.tab <- table(ipen)[as.character(dict.pen)] 
+
   ## Indices of parameter groups
-  ipen.which <- list(); length(ipen.which) <- length(dict.pen)
-  for(j in 1:length(dict.pen))
-    ipen.which[[j]] <- which(index == dict.pen[j])
+  ipen.which <- split((1:ncol(x))[!is.na(index)], ipen)
 
   if(standardize){
     stand        <- blockstand(x, ipen.which, inotpen.which)
@@ -229,13 +232,16 @@ lambdamax.default <- function(x, y, index, weights = rep(1, length(y)),
     mu0 <- model@invlink(offset)
   }
   
-  ngrad0 <- model@ngradient(x, y, mu0, weights, ...)
+  ngrad0 <- model@ngradient(x, y, mu0, weights, ...)[!is.na(index)]
+  
+  ##gradnorms <- numeric(length(dict.pen))
 
-  gradnorms <- numeric(length(dict.pen))
-  for(j in 1:length(dict.pen)){
-    gradnorms[j] <- sqrt(crossprod(ngrad0[which(index == dict.pen[j])])) /
-      penscale(sum(index == dict.pen[j], na.rm = TRUE))
-  }
+  gradnorms <- c(sqrt(rowsum(ngrad0^2, group = ipen))) / penscale(ipen.tab)
+                                                       
+  ##for(j in 1:length(dict.pen)){
+  ##  gradnorms[j] <- sqrt(crossprod(ngrad0[which(index == dict.pen[j])])) /
+  ##    penscale(sum(index == dict.pen[j], na.rm = TRUE))
+  ##}
   max(gradnorms)
 }
 

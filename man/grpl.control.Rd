@@ -6,8 +6,9 @@
   convergence criteria and output management for the Group Lasso algorithm.
 }
 \usage{
-grpl.control(save.x = FALSE, save.y = TRUE, update.hess = c("always", "lambda"),
-             tol = 10^-8, lower = 1, upper = Inf, beta = 0.1,
+grpl.control(save.x = FALSE, save.y = TRUE,
+             update.hess = c("always","lambda"), update.every = 1,
+             tol = 5 * 10^-8, lower = 10^-2, upper = Inf, beta = 0.5,
              sigma = 0.1, trace = 1)
 }
 \arguments{
@@ -19,6 +20,8 @@ grpl.control(save.x = FALSE, save.y = TRUE, update.hess = c("always", "lambda"),
     parameter "lambda" based on the parameter estimates
     corresponding to the previous value of the penalty
     parameter.}
+  \item{update.every}{Only used if update.hess = "lambda". E.g. set to 3
+    if you want to update the Hessian only every third grid point.}
   \item{tol}{convergence tolerance; the smaller the more precise, see
     details below.}
   \item{lower}{lower bound for the diagonal approximation of the

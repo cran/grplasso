@@ -21,6 +21,8 @@ Objects can be created by calls of the form \code{grpl.model(...)}}
     \item{\code{nhessian}}{a function with arguments \code{x}, \code{mu} and
     \code{weights} implementing the \emph{negative} hessian of the
     log-likelihood function.}
+    \item{\code{check}}{a function with argument \code{y} to check
+      whether the response has the correct format.}
     \item{\code{name}}{a character name}
     \item{\code{comment}}{a character comment}
   }

@@ -76,12 +76,22 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
   ## Author: Lukas Meier, Date: 30 Aug 2005, 09:02
 
   ## Do some error checking first
+
+  ## Check the design matrix
   if(!is.matrix(x))
     stop("x has to be a matrix")
 
+  if(any(is.na(x)))
+    stop("Missing values in x not allowed!")
+
+  ## Check the response
   if(!is.numeric(y))
     stop("y has to be of type 'numeric'")
-  
+
+  if(!model@check(y))
+    stop("y has wrong format")
+
+  ## Check the other arguments
   if(length(weights) != length(y))
     stop("length(weights) not equal length(y)")
 
@@ -106,65 +116,93 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
   check <- validObject(control) ## will stop the program if error occurs
   
   ## Extract the control information
-  update.hess <- control@update.hess
-  lower       <- control@lower
-  upper       <- control@upper
-  save.x      <- control@save.x
-  save.y      <- control@save.y
-  tol         <- control@tol
-  trace       <- control@trace
-  beta        <- control@beta
-  sigma       <- control@sigma
+  update.hess  <- control@update.hess
+  update.every <- control@update.every
+  lower        <- control@lower
+  upper        <- control@upper
+  save.x       <- control@save.x
+  save.y       <- control@save.y
+  tol          <- control@tol
+  trace        <- control@trace
+  beta         <- control@beta
+  sigma        <- control@sigma
+
+  nrlambda <- length(lambda)
+  ncolx    <- ncol(x)
+  nrowx    <- nrow(x)
   
   ## Which are the non-penalized parameters?
-  any.notpen <- any(is.na(index))
-
+  any.notpen    <- any(is.na(index))
   inotpen.which <- which(is.na(index))
+  nrnotpen      <- length(inotpen.which)
   
   ## Index vector of the penalized parameter groups
-  ipen <- index[!is.na(index)]
+  if(any.notpen){
+    ipen <- index[-inotpen.which]
+    ipen.which <- split((1:ncolx)[-inotpen.which], ipen)
+  }else{
+    cat("...Possible intercept *not* considered. Has to be specified if needed.\n")
+    ipen <- index
+    ipen.which <- split((1:ncolx), ipen)
+  }
 
-  dict.pen <- sort(unique(ipen))
-  ipen.tab <- table(ipen)[as.character(dict.pen)] ## Table of degrees of freedom
-  ## Indices of parameter groups
-  ipen.which <- list(); length(ipen.which) <- length(dict.pen)
-  for(j in 1:length(dict.pen))
-    ipen.which[[j]] <- which(index == dict.pen[j])
+  nrpen      <- length(ipen.which)
+  dict.pen   <- sort(unique(ipen))
+  
+  ## Table of degrees of freedom
+  ipen.tab   <- table(ipen)[as.character(dict.pen)]
+  
+  x.old <- x
+  ## Standardize the design matrix -> blockwise orthonormalization
+  if(standardize){
+    cat("...Using standardized design matrix.\n")
+    stand        <- blockstand(x, ipen.which, inotpen.which)
+    x            <- stand$x
+    scale.pen    <- stand$scale.pen
+    scale.notpen <- stand$scale.notpen
+  }
+  ## From now on x is the *normalized* design matrix!
+  
+  ## Extract the columns into lists, works faster for large matrices
+  if(any.notpen){
+    x.notpen <- list(); length(x.notpen) <- nrnotpen
+    for(i in 1:length(inotpen.which))
+      x.notpen[[i]] <- x[,inotpen.which[[i]], drop = FALSE]
+  }
+  
+  x.pen <- list(); length(x.pen) <- length(nrpen)
+  for(i in 1:length(ipen.which))
+    x.pen[[i]] <- x[,ipen.which[[i]], drop = FALSE]
 
+  ## Extract the needed functions
   check     <- validObject(model)
   invlink   <- model@invlink
   nloglik   <- model@nloglik
   ngradient <- model@ngradient
   nhessian  <- model@nhessian
 
-  x.old <- x
-  ## Standardize the design matrix -> blockwise orthonormalization
-  if(standardize){
-    stand        <- blockstand(x, ipen.which, inotpen.which)
-    x            <- stand$x
-    scale.pen    <- stand$scale.pen
-    scale.notpen <- stand$scale.notpen
-  }
-  
   #########################################################################
   ##                                                                     ##
   ## Start the optimization process                                      ##
   ##                                                                     ##
   #########################################################################
 
-  coef <- coef.init
-  
-  norms.pen    <- sqrt(sapply(1:length(ipen.which),
-                              function(j) crossprod(coef[ipen.which[[j]]])))
-  norms.pen.m  <- matrix(0, nrow = length(norms.pen), ncol = length(lambda),
+  coef      <- coef.init
+  coef.pen  <- coef.init
+  if(any.notpen)
+    coef.pen  <- coef[-inotpen.which]
+
+  norms.pen <- c(sqrt(rowsum(coef.pen^2, group = ipen)))
+
+  norms.pen.m  <- matrix(0, nrow = nrpen, ncol = nrlambda,
                          dimnames = list(NULL, lambda))
-  norms.npen.m <- matrix(0, nrow = sum(is.na(index)), ncol = length(lambda),
+  norms.npen.m <- matrix(0, nrow = nrnotpen, ncol = nrlambda,
                          dimnames = list(NULL, lambda))
-  nloglik.v <- fn.val.v <- numeric(length(lambda))
-  coef.m    <- grad.m <- matrix(0, nrow = ncol(x), ncol = length(lambda),
+  nloglik.v <- fn.val.v <- numeric(nrlambda)
+  coef.m    <- grad.m <- matrix(0, nrow = ncolx, ncol = nrlambda,
                                 dimnames = list(colnames(x), lambda))
-  fitted    <- linear.predictors <- matrix(0, nrow = nrow(x),
-                                           ncol = length(lambda),
+  fitted    <- linear.predictors <- matrix(0, nrow = nrowx,
+                                           ncol = nrlambda,
                                            dimnames = list(rownames(x), lambda))
 
   ## *Initial* vector of linear predictors (eta) and transformed to the
@@ -172,7 +210,12 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
   eta <- offset + c(x %*% coef)
   mu <- invlink(eta)
 
-  for(pos in 1:length(lambda)){
+  if(any.notpen){
+    nH.notpen <- numeric(nrnotpen)
+  }
+  nH.pen <- numeric(nrpen)
+
+  for(pos in 1:nrlambda){
     l <- lambda[pos]
     if(trace >= 1)
       cat("Lambda: ", l, "\n")
@@ -181,20 +224,19 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
 
     ## Initial Hessian Matrix of the *negative* log-likelihood function
     ## (uses parameter estimates based on the last penalty parameter value)
-    ## If we update the Hessian we don't
-    if(!(update.hess == "always") | pos == 1){
+
+    ##if(!(update.hess == "always") | pos == 1){
+    if(update.hess == "lambda" & pos %% update.every == 0 | pos == 1){
       if(any.notpen){
-        nH.notpen <- numeric()
         for(j in inotpen.which){
-          Xj <- x[,j, drop = FALSE]
+          Xj <- x.notpen[[j]] 
           nH.notpen[j] <- min(max(nhessian(Xj, mu, weights, ...), lower), upper)
         }
       }
       
-      nH.pen <- numeric()
-      for(j in 1:length(ipen.which)){
+      for(j in 1:nrpen){
         ind <- ipen.which[[j]]
-        Xj <- x[,ind, drop = FALSE] ##ipen.which[[j]]]
+        Xj <- x.pen[[j]] 
         diagH <- numeric(length(ind))
         for(i in 1:length(ind))
           diagH[i] <- nhessian(Xj[, i, drop = FALSE], mu, weights, ...)
@@ -211,12 +253,14 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
       fn.val.old <- fn.val
       coef.old   <- coef
 
+      start.notpen <- rep(1, nrnotpen)
+      start.pen    <- rep(1, nrpen)
+
       if(any.notpen){
         ## Optimize the *non-penalized* parameters
-        for(j in 1:length(inotpen.which)){
+        for(j in 1:nrnotpen){
           ind <- inotpen.which[j]
-          ##mu <- invlink(eta) ## to be removed
-          Xj <- x[,ind,drop = FALSE]
+          Xj <- x.notpen[[j]]
         
           ## Gradient of the negative log-likelihood function 
           ngrad <- c(ngradient(Xj, y, mu, weights, ...))
@@ -232,7 +276,7 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
         
           if(d != 0){
             qh    <- sum(ngrad * d)
-            scale <- 1 
+            scale <- min(start.notpen[j] / beta, 1) ##1 
             coef.test <- coef
             coef.test[ind] <- coef[ind] + scale * d
             Xjd <- Xj * d
@@ -240,25 +284,30 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
             fn.val0      <- nloglik(y, eta, weights, ...)
             fn.val.test  <- nloglik(y, eta.test, weights, ...)
             while(fn.val.test - fn.val0 > sigma * scale * qh){
-              scale <- scale * beta
+              scale          <- scale * beta
               coef.test[ind] <- coef[ind] + scale * d
-              eta.test <- eta + Xjd * scale
-              fn.val.test <- nloglik(y, eta.test, weights, ...)
+              eta.test       <- eta + Xjd * scale
+              fn.val.test    <- nloglik(y, eta.test, weights, ...)
             }
+            start.notpen[j] <- scale
             coef <- coef.test
             eta  <- eta.test
-            mu <- invlink(eta)
+            mu   <- invlink(eta)
           }
         }
       }
       
       ## Optimize the *penalized* parameter groups
-      for(j in 1:length(ipen.which)){
+      for(j in 1:nrpen){
         ind  <- ipen.which[[j]]
         npar <- ipen.tab[j]
 
+        coef.ind <- coef[ind]
+        cross.coef.ind <- crossprod(coef.ind)
+
         ## Design matrix of the current group
-        Xj <- x[,ind, drop = FALSE]
+        Xj <- x.pen[[j]] 
+
 
         ngrad <- c(ngradient(Xj, y, mu, weights, ...))
         if(update.hess == "always"){
@@ -270,7 +319,7 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
         }else{
           nH <- nH.pen[j]
         }
-        cond <- -ngrad + nH * coef[ind] 
+        cond <- -ngrad + nH * coef.ind 
         cond.norm2 <- crossprod(cond) #sum(cond^2)
         
         ## Check whether the Minimum is at c(0, 0, ...) via the condition on
@@ -280,16 +329,16 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
           d <- (1 / nH) *
             (-ngrad - l * penscale(npar) * (cond / sqrt(cond.norm2)))
         }else{
-          d <- -coef[ind]
+          d <- -coef.ind
         }
         if(!all(d == 0)){
-          scale <- 1 
+          scale <- min(start.pen[j] / beta, 1) ##1 
           qh <- sum(ngrad * d) + 
-            l * penscale(npar) * sqrt(crossprod(coef[ind] + d)) -
-              l * penscale(npar)* sqrt(crossprod(coef[ind]))
+            l * penscale(npar) * sqrt(crossprod(coef.ind + d)) -
+              l * penscale(npar)* sqrt(cross.coef.ind)
 
           coef.test      <- coef
-          coef.test[ind] <- coef[ind] + scale * d
+          coef.test[ind] <- coef.ind + scale * d
           Xjd            <- c(Xj %*% d)
           eta.test       <- eta + Xjd * scale
           fn.val.test    <- nloglik(y, eta.test, weights, ...)
@@ -297,16 +346,17 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
 
           while(fn.val.test - fn.val0 +
                 l  * penscale(npar) * sqrt(crossprod(coef.test[ind])) -
-                l  * penscale(npar) * sqrt(crossprod(coef[ind])) >
+                l  * penscale(npar) * sqrt(cross.coef.ind) >
                 sigma * scale * qh){
-            scale <- scale * beta
-            coef.test[ind] <- coef[ind] + scale * d
-            eta.test <- eta + Xjd * scale
-            fn.val.test <- nloglik(y, eta.test, weights, ...)
+            scale          <- scale * beta
+            coef.test[ind] <- coef.ind + scale * d
+            eta.test       <- eta + Xjd * scale
+            fn.val.test    <- nloglik(y, eta.test, weights, ...)
           }
           coef <- coef.test
-          eta <- eta.test
-          mu <- invlink(eta)
+          eta  <- eta.test
+          mu   <- invlink(eta)
+          start.pen[j] <- scale
         }
         norms.pen[j] <- sqrt(crossprod(coef[ind]))
       }
@@ -325,7 +375,6 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
     }
     coef.m[,pos]            <- coef
     fn.val.v[pos]           <- fn.val
-    #norms.npen.m[,pos]      <- abs(coef[inotpen.which])
     norms.pen.m[,pos]       <- norms.pen
     nloglik.v[pos]          <- nloglik(y, eta, weights, ...)
     grad.m[,pos]            <- ngradient(x, y, mu, weights, ...)
@@ -351,20 +400,20 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
   out <- list(x = x.old, ## use untransformed values
               y = y, 
               coefficients = coef.m,
-              norms.pen = norms.pen.m,
-              lambda = lambda,
-              index = index,
-              penscale = penscale,
-              model = model,
-              ngradient = grad.m,
-              nloglik = nloglik.v,
-              fitted = fitted,
+              norms.pen    = norms.pen.m,
+              lambda       = lambda,
+              index        = index,
+              penscale     = penscale,
+              model        = model,
+              ngradient    = grad.m,
+              nloglik      = nloglik.v,
+              fitted       = fitted,
               linear.predictors = linear.predictors,
-              fn.val = fn.val.v,
-              weights = weights,
-              offset = offset,
-              control = control,
-              call = match.call())
+              fn.val   = fn.val.v,
+              weights  = weights,
+              offset   = offset,
+              control  = control,
+              call     = match.call())
   structure(out, class = "grplasso")
 }
 

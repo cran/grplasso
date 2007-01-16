@@ -1,25 +1,27 @@
 setClass("grpl.control",
          representation = representation(
-           save.x      = "logical",
-           save.y      = "logical",
-           update.hess = "character",
-           tol         = "numeric",
-           lower       = "numeric",
-           upper       = "numeric",
-           beta        = "numeric",
-           sigma       = "numeric",
-           trace       = "numeric"),
+           save.x       = "logical",
+           save.y       = "logical",
+           update.hess  = "character",
+           update.every = "numeric",
+           tol          = "numeric",
+           lower        = "numeric",
+           upper        = "numeric",
+           beta         = "numeric",
+           sigma        = "numeric",
+           trace        = "numeric"),
 
          prototype = list(
-           save.x = FALSE,
-           save.y = TRUE,
-           update.hess = "always",
-           tol = 10^-8,
-           lower = 1,
-           upper = Inf,
-           beta = 0.1,
-           sigma = 0.1,
-           trace = 1),
+           save.x       = FALSE,
+           save.y       = TRUE,
+           update.hess  = "always",
+           update.every = 1,
+           tol          = 5 * 10^-8,
+           lower        = 10^-2,
+           upper        = Inf,
+           beta         = 0.5,
+           sigma        = 0.1,
+           trace        = 1),
            
          validity = function(object){
            if(object@beta <= 0 | object@beta >= 1)
@@ -40,8 +42,10 @@ setClass("grpl.control",
 
 grpl.control <- function(save.x = FALSE, save.y = TRUE,
                          update.hess = c("always", "lambda"),
-                         tol = 10^-8, lower = 1, upper = Inf,
-                         beta = 0.1, sigma = 0.1, trace = 1){
+                         update.every = 1,
+                         tol = 5 * 10^-8, lower = 10^-2, upper = Inf,
+                         beta = 0.5, sigma = 0.1, trace = 1){
+  
   ## Purpose: Options for the Group Lasso Algorithm
   ## ----------------------------------------------------------------------
   ## Arguments:
@@ -76,14 +80,15 @@ grpl.control <- function(save.x = FALSE, save.y = TRUE,
   update.hess <- match.arg(update.hess)
 
   RET <- new("grpl.control",
-             save.x      = save.x,
-             save.y      = save.y,
-             update.hess = update.hess,
-             tol         = tol,
-             lower       = lower,
-             upper       = upper,
-             beta        = beta,
-             sigma       = sigma,
-             trace       = trace)
+             save.x       = save.x,
+             save.y       = save.y,
+             update.hess  = update.hess,
+             update.every = update.every,
+             tol          = tol,
+             lower        = lower,
+             upper        = upper,
+             beta         = beta,
+             sigma        = sigma,
+             trace        = trace)
   RET
 }
