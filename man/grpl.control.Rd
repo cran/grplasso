@@ -7,9 +7,9 @@
 }
 \usage{
 grpl.control(save.x = FALSE, save.y = TRUE,
-             update.hess = c("always","lambda"), update.every = 1,
-             tol = 5 * 10^-8, lower = 10^-2, upper = Inf, beta = 0.5,
-             sigma = 0.1, trace = 1)
+             update.hess = c("always","lambda"), update.every = 3,
+             inner.loops = 10, tol = 5 * 10^-8, lower = 10^-2,
+             upper = Inf, beta = 0.5, sigma = 0.1, trace = 1)
 }
 \arguments{
   \item{save.x}{a logical indicating whether the design matrix should be saved.}
@@ -22,6 +22,10 @@ grpl.control(save.x = FALSE, save.y = TRUE,
     parameter.}
   \item{update.every}{Only used if update.hess = "lambda". E.g. set to 3
     if you want to update the Hessian only every third grid point.}
+  \item{inner.loops}{How many loops should be done (at maximum) when solving
+    only the active set (without considering the remaining
+    predictors). Useful if the number of predictors is large. Set to 0
+    if no inner loops should be performed.}
   \item{tol}{convergence tolerance; the smaller the more precise, see
     details below.}
   \item{lower}{lower bound for the diagonal approximation of the

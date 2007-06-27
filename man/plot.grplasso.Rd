@@ -22,7 +22,7 @@ data(splice)
 
 contr <- list(Pos.1 = "contr.sum", Pos.2 = "contr.sum")
 lambda <- lambdamax(y ~ Pos.1 * Pos.2, data = splice, model = LogReg(),
-                    contrasts = contr, standardize = TRUE) * 0.9^(0:30)
+                    contrasts = contr, standardize = TRUE) * 0.8^(0:16)
 
 fit <- grplasso(y ~ Pos.1 * Pos.2, data = splice, model = LogReg(),
                 lambda = lambda, contrasts = contr, standardize = TRUE,

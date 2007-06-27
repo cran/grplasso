@@ -118,6 +118,7 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
   ## Extract the control information
   update.hess  <- control@update.hess
   update.every <- control@update.every
+  inner.loops  <- control@inner.loops
   lower        <- control@lower
   upper        <- control@upper
   save.x       <- control@save.x
@@ -141,7 +142,8 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
     ipen <- index[-inotpen.which]
     ipen.which <- split((1:ncolx)[-inotpen.which], ipen)
   }else{
-    cat("...Possible intercept *not* considered. Has to be specified if needed.\n")
+    cat("\n...All groups are penalized. Did you include an intercept in your\n")
+    cat("   design matrix and really want to penalize it?\n")
     ipen <- index
     ipen.which <- split((1:ncolx), ipen)
   }
@@ -217,10 +219,9 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
 
   for(pos in 1:nrlambda){
     l <- lambda[pos]
-    if(trace >= 1)
-      cat("Lambda: ", l, "\n")
 
-    d.fn <- d.par <- 1
+    if(trace >= 2)
+      cat("\nLambda:", l, "\n")
 
     ## Initial Hessian Matrix of the *negative* log-likelihood function
     ## (uses parameter estimates based on the last penalty parameter value)
@@ -248,11 +249,45 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
     ## Start the optimization process
     fn.val <- nloglik(y, eta, weights, ...) +
       l * sum(penscale(ipen.tab) * norms.pen)
+
+    ## These are needed to get into the while loop the first time
+    do.all  <- FALSE
+    d.fn <- d.par <- 1
+
+    counter <- 1
     
-    while(d.fn > tol | d.par > sqrt(tol)){
+    while(d.fn > tol | d.par > sqrt(tol) | !do.all){
       fn.val.old <- fn.val
       coef.old   <- coef
 
+      ## Count how many times we are already optimizing
+      ## Will be reset (see end of while loop) when subgroup
+      ## is finished with optimizing
+
+      ## Check whether we have some useful information from the previous step
+       
+      if(counter == 0 | counter > inner.loops){
+        do.all <- TRUE
+        guessed.active <- 1:nrpen
+        counter <- 1
+        if(trace >= 2)
+          cat("...Running through all groups\n")
+      }else{
+        guessed.active <- which(norms.pen != 0)
+        if(length(guessed.active) == 0){ 
+          guessed.active <- 1:nrpen
+          do.all <- TRUE
+          if(trace >= 2)
+            cat("...Running through all groups\n")
+        }else{
+          do.all <- FALSE
+          if(counter == 1 & trace >= 2)
+            cat("...Starting inner loop\n")
+          counter <- counter + 1
+        }
+      }
+
+      ## These are used for the line search
       start.notpen <- rep(1, nrnotpen)
       start.pen    <- rep(1, nrpen)
 
@@ -294,11 +329,11 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
             eta  <- eta.test
             mu   <- invlink(eta)
           }
-        }
+        } 
       }
-      
+
       ## Optimize the *penalized* parameter groups
-      for(j in 1:nrpen){
+      for(j in guessed.active){ ##for(j in 1:nrpen){
         ind  <- ipen.which[[j]]
         npar <- ipen.tab[j]
 
@@ -360,7 +395,7 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
         }
         norms.pen[j] <- sqrt(crossprod(coef[ind]))
       }
-
+      
       fn.val <- nloglik(y, eta, weights, ...) +
         l * sum(penscale(ipen.tab) * norms.pen)
       
@@ -369,10 +404,22 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
 
       d.fn <- (fn.val.old - fn.val) / (1 + abs(fn.val))
       if(trace >= 2){
-        cat("d.fn: ", d.fn, "d.par: ", d.par, "nr.var: ",
+        cat("d.fn:", d.fn, " d.par:", d.par, " nr.var:",
             sum(coef != 0), "\n")
       }
-    }
+
+      ## Check whether the sub-problem is already finished
+      if(d.fn <= tol & d.par <= sqrt(tol)){
+        counter <- 0 ## will force a run through all groups
+        if(trace >= 2 & !do.all)
+          cat("...Subproblem (active set) solved\n")
+      } 
+        
+    } ## end of while loop
+
+    if(trace == 1)
+      cat("Lambda:", l, " nr.var:", sum(coef != 0), "\n")
+    
     coef.m[,pos]            <- coef
     fn.val.v[pos]           <- fn.val
     norms.pen.m[,pos]       <- norms.pen

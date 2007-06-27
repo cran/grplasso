@@ -1,3 +1,4 @@
+
 \name{grpl.control-class}
 \docType{class}
 \alias{grpl.control-class}
@@ -21,8 +22,12 @@
     parameter "lambda" based on the parameter estimates
     corresponding to the previous value of the penalty
     parameter.}
-  \item{update.every}{Only used if update.hess = "lambda". E.g. set to 3
+  \item{\code{update.every}}{Only used if update.hess = "lambda". E.g. set to 3
     if you want to update the Hessian only every third grid point.}
+  \item{\code{inner.loops}}{How many loops should be done (at maximum)
+    when solving only the active set (without considering the remaining
+    predictors). Useful if the number of predictors is large. Set to 0
+    if no inner loops should be performed.}
   \item{\code{tol}}{convergence tolerance; the smaller the more precise.}
   \item{\code{lower}}{lower bound for the diagonal approximation of the
     corresponding block submatrix of the Hessian of the negative

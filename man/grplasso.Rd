@@ -117,7 +117,7 @@ y <- rbinom(n, size = 1, prob = prob) ## binary response vector
 ## Use a multiplicative grid for the penalty parameter lambda, starting
 ## at the maximal lambda value
 lambda <- lambdamax(x, y = y, index = index, penscale = sqrt,
-                    model = LogReg()) * 0.9^(0:30)
+                    model = LogReg()) * 0.5^(0:5)
 
 ## Fit the solution path on the lambda grid
 fit <- grplasso(x, y = y, index = index, lambda = lambda, model = LogReg(),

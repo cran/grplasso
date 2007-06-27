@@ -4,6 +4,7 @@ setClass("grpl.control",
            save.y       = "logical",
            update.hess  = "character",
            update.every = "numeric",
+           inner.loops  = "numeric",
            tol          = "numeric",
            lower        = "numeric",
            upper        = "numeric",
@@ -15,7 +16,8 @@ setClass("grpl.control",
            save.x       = FALSE,
            save.y       = TRUE,
            update.hess  = "always",
-           update.every = 1,
+           update.every = 3,
+           inner.loops  = 10,
            tol          = 5 * 10^-8,
            lower        = 10^-2,
            upper        = Inf,
@@ -24,6 +26,14 @@ setClass("grpl.control",
            trace        = 1),
            
          validity = function(object){
+           if(ceiling(object@update.every) != floor(object@update.every) |
+              object@update.every <= 0)
+             return("update.every has to be a natural number")
+
+           if(ceiling(object@inner.loops) != floor(object@inner.loops) |
+              object@inner.loops < 0)
+             return("inner.loops has to be a natural number or 0")
+
            if(object@beta <= 0 | object@beta >= 1)
              return("beta has to be in (0, 1)")
            
@@ -42,7 +52,7 @@ setClass("grpl.control",
 
 grpl.control <- function(save.x = FALSE, save.y = TRUE,
                          update.hess = c("always", "lambda"),
-                         update.every = 1,
+                         update.every = 3, inner.loops = 10,
                          tol = 5 * 10^-8, lower = 10^-2, upper = Inf,
                          beta = 0.5, sigma = 0.1, trace = 1){
   
@@ -56,7 +66,10 @@ grpl.control <- function(save.x = FALSE, save.y = TRUE,
   ##              the Hessian once for each component of the penalty
   ##              parameter "lambda" based on the parameter estimates
   ##              corresponding to the previous value of the penalty
-  ##              parameter. 
+  ##              parameter.
+  ## inner.loops: how many loops should be done (at maximum) when solving
+  ##              only the active set (without considering the remaining
+  ##              predictors)
   ## tol: convergence tolerance; the smaller the more precise, see
   ##      details below.
                
@@ -84,6 +97,7 @@ grpl.control <- function(save.x = FALSE, save.y = TRUE,
              save.y       = save.y,
              update.hess  = update.hess,
              update.every = update.every,
+             inner.loops  = inner.loops,
              tol          = tol,
              lower        = lower,
              upper        = upper,
