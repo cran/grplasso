@@ -7,7 +7,7 @@
 }
 \usage{
 grpl.control(save.x = FALSE, save.y = TRUE,
-             update.hess = c("always","lambda"), update.every = 3,
+             update.hess = c("lambda", "always"), update.every = 3,
              inner.loops = 10, tol = 5 * 10^-8, lower = 10^-2,
              upper = Inf, beta = 0.5, sigma = 0.1, trace = 1)
 }

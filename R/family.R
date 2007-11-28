@@ -1,11 +1,11 @@
 setClass("grpl.model", representation = representation(
-    invlink    = "function",
-    nloglik    = "function",                   
-    ngradient  = "function",
-    nhessian   = "function",
-    check      = "function",
-    name       = "character",
-    comment    = "character"
+    invlink          = "function",
+    nloglik          = "function",                   
+    ngradient        = "function",
+    nhessian         = "function",
+    check            = "function",
+    name             = "character",
+    comment          = "character"
 ))
 
 setMethod("show", "grpl.model", function(object) {
@@ -13,8 +13,8 @@ setMethod("show", "grpl.model", function(object) {
     cat("Comment:", object@comment, "\n\n")
 })
 
-grpl.model <- function(invlink, nloglik, ngradient, nhessian, check,
-                       name = "user-specified",
+grpl.model <- function(invlink, nloglik, ngradient, nhessian,
+                       check, name = "user-specified",
                        comment = "user-specified"){
   ## Purpose: Generates models to be used for the Group Lasso algorithm.
   ## ----------------------------------------------------------------------
@@ -35,13 +35,13 @@ grpl.model <- function(invlink, nloglik, ngradient, nhessian, check,
   ## Author: Lukas Meier, Date:  1 Jun 2006, 10:12
 
     RET <- new("grpl.model",
-               invlink   = invlink,
-               nloglik   = nloglik,
-               ngradient = ngradient,
-               nhessian  = nhessian,
-               check     = check,
-               name      = name,
-               comment   = comment)
+               invlink          = invlink,
+               nloglik          = nloglik,
+               ngradient        = ngradient,
+               nhessian         = nhessian,
+               check            = check,
+               name             = name,
+               comment          = comment)
     RET
 }
 
@@ -70,7 +70,7 @@ LinReg <- function(){
               2 * crossprod(x, weights * x),
             check     = function(y) TRUE,
             name      = "Linear Regression Model",
-            comment   = "Use update.hess = 'lambda' in grpl.control because the Hessian is constant")
+            comment   = "Use update.hess=\"lambda\" in grpl.control because the Hessian is constant")
 }
 
 ## Poisson Regression

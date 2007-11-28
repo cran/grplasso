@@ -80,7 +80,7 @@ grplasso(x, ...)
 }
 \references{Lukas Meier, Sara van de Geer and Peter B\"uhlmann (2006), \emph{The
     Logistic Group Lasso}, available at
-    \url{http://stat.ethz.ch/~meier/logistic-grouplasso.html}} 
+    \url{http://stat.ethz.ch/~meier/logistic-grouplasso.php}} 
 \author{Lukas Meier, \email{meier@stat.math.ethz.ch}}
 \examples{
 ## Use the Logistic Group Lasso on the splice data set

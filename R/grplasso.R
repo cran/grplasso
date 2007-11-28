@@ -127,10 +127,15 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
   trace        <- control@trace
   beta         <- control@beta
   sigma        <- control@sigma
-
+  
   nrlambda <- length(lambda)
   ncolx    <- ncol(x)
   nrowx    <- nrow(x)
+
+  if(nrlambda > 1 & update.hess == "always"){
+    cat("More than one lambda value and update.hess=\"always\" \n")
+    cat("You may want to use update.hess=\"lambda\" \n")
+  }
   
   ## Which are the non-penalized parameters?
   any.notpen    <- any(is.na(index))
@@ -183,28 +188,21 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
   ngradient <- model@ngradient
   nhessian  <- model@nhessian
 
-  #########################################################################
-  ##                                                                     ##
-  ## Start the optimization process                                      ##
-  ##                                                                     ##
-  #########################################################################
-
   coef      <- coef.init
   coef.pen  <- coef.init
   if(any.notpen)
     coef.pen  <- coef[-inotpen.which]
 
-  norms.pen <- c(sqrt(rowsum(coef.pen^2, group = ipen)))
+  norms.pen    <- c(sqrt(rowsum(coef.pen^2, group = ipen)))
 
   norms.pen.m  <- matrix(0, nrow = nrpen, ncol = nrlambda,
                          dimnames = list(NULL, lambda))
   norms.npen.m <- matrix(0, nrow = nrnotpen, ncol = nrlambda,
                          dimnames = list(NULL, lambda))
   nloglik.v <- fn.val.v <- numeric(nrlambda)
-  coef.m    <- grad.m <- matrix(0, nrow = ncolx, ncol = nrlambda,
-                                dimnames = list(colnames(x), lambda))
-  fitted    <- linear.predictors <- matrix(0, nrow = nrowx,
-                                           ncol = nrlambda,
+  coef.m    <- grad.m   <- matrix(0, nrow = ncolx, ncol = nrlambda,
+                                  dimnames = list(colnames(x), lambda))
+  fitted    <- linear.predictors <- matrix(0, nrow = nrowx, ncol = nrlambda,
                                            dimnames = list(rownames(x), lambda))
 
   ## *Initial* vector of linear predictors (eta) and transformed to the
@@ -212,6 +210,7 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
   eta <- offset + c(x %*% coef)
   mu <- invlink(eta)
 
+  ## Create vectors for the Hessian approximations
   if(any.notpen){
     nH.notpen <- numeric(nrnotpen)
   }
@@ -223,25 +222,26 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
     if(trace >= 2)
       cat("\nLambda:", l, "\n")
 
-    ## Initial Hessian Matrix of the *negative* log-likelihood function
-    ## (uses parameter estimates based on the last penalty parameter value)
+    ## Initial (or updated) Hessian Matrix of the *negative* log-likelihood
+    ## function (uses parameter estimates based on the last penalty parameter
+    ## value)
 
-    ##if(!(update.hess == "always") | pos == 1){
     if(update.hess == "lambda" & pos %% update.every == 0 | pos == 1){
+      ## Non-penalized groups
       if(any.notpen){
         for(j in inotpen.which){
           Xj <- x.notpen[[j]] 
           nH.notpen[j] <- min(max(nhessian(Xj, mu, weights, ...), lower), upper)
         }
       }
-      
+      ## Penalized groups
       for(j in 1:nrpen){
         ind <- ipen.which[[j]]
         Xj <- x.pen[[j]] 
         diagH <- numeric(length(ind))
-        for(i in 1:length(ind))
+        for(i in 1:length(ind)){
           diagH[i] <- nhessian(Xj[, i, drop = FALSE], mu, weights, ...)
-        
+        }
         nH.pen[j] <- min(max(diagH, lower), upper)
       }
     }
@@ -251,28 +251,29 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
       l * sum(penscale(ipen.tab) * norms.pen)
 
     ## These are needed to get into the while loop the first time
-    do.all  <- FALSE
-    d.fn <- d.par <- 1
+    do.all <- FALSE
+    d.fn   <- d.par <- 1
 
     counter <- 1
-    
+
+    ## Stop the following while loop if the convergence criterion is fulfilled
+    ## but only if we have gone through all the coordinates
     while(d.fn > tol | d.par > sqrt(tol) | !do.all){
+      ## Save the parameter vector and the function value of the previous step
       fn.val.old <- fn.val
       coef.old   <- coef
 
-      ## Count how many times we are already optimizing
-      ## Will be reset (see end of while loop) when subgroup
-      ## is finished with optimizing
-
       ## Check whether we have some useful information from the previous step
-       
+
+      ## Go through all groups if counter == 0 or if we have exceeded the
+      ## number of innter loops (inner.loops)
       if(counter == 0 | counter > inner.loops){
         do.all <- TRUE
         guessed.active <- 1:nrpen
         counter <- 1
         if(trace >= 2)
           cat("...Running through all groups\n")
-      }else{
+      }else{## Go through the groups which were identified at the previous step
         guessed.active <- which(norms.pen != 0)
         if(length(guessed.active) == 0){ 
           guessed.active <- 1:nrpen
@@ -287,7 +288,7 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
         }
       }
 
-      ## These are used for the line search
+      ## These are used for the line search, start at initial value 1
       start.notpen <- rep(1, nrnotpen)
       start.pen    <- rep(1, nrpen)
 
@@ -295,127 +296,158 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
         ## Optimize the *non-penalized* parameters
         for(j in 1:nrnotpen){
           ind <- inotpen.which[j]
-          Xj <- x.notpen[[j]]
+          Xj  <- x.notpen[[j]]
         
           ## Gradient of the negative log-likelihood function 
           ngrad <- c(ngradient(Xj, y, mu, weights, ...))
-          
+
+          ## Update the Hessian if necessary
           if(update.hess == "always"){
             nH <- min(max(nhessian(Xj, mu, weights, ...), lower), upper)
           }else{
             nH <- nH.notpen[j]
           }
-          
+
+          ## Calculate the search direction
           d <- -(1 / nH) * ngrad
+          ## Set to 0 if the value is very small compared to the current
+          ## coefficient estimate
           d <- zapsmall(c(coef[ind], d))[2]
-        
+          ## If d != 0, we have to do a line search
           if(d != 0){
             qh    <- sum(ngrad * d)
             scale <- min(start.notpen[j] / beta, 1) ##1 
-            coef.test <- coef
+            coef.test      <- coef
             coef.test[ind] <- coef[ind] + scale * d
             Xjd <- Xj * d
             eta.test     <- eta + Xjd * scale
             fn.val0      <- nloglik(y, eta, weights, ...)
             fn.val.test  <- nloglik(y, eta.test, weights, ...)
-            while(fn.val.test - fn.val0 > sigma * scale * qh){
+
+            qh <- zapsmall(c(qh, fn.val0))[1]
+
+            ## Armijo line search. Stop if scale gets too small (10^-30).
+            while(fn.val.test - fn.val0 > sigma * scale * qh & scale > 10^-30){
+              ##cat("Doing line search (nonpen)\n")
               scale          <- scale * beta
               coef.test[ind] <- coef[ind] + scale * d
               eta.test       <- eta + Xjd * scale
               fn.val.test    <- nloglik(y, eta.test, weights, ...)
             }
+            ## Save the scaling factor for the next iteration (in order that
+            ## we only have to do very few line searches)
             start.notpen[j] <- scale
+
+            ## Update the remaining information
             coef <- coef.test
             eta  <- eta.test
             mu   <- invlink(eta)
-          }
-        } 
-      }
-
+          } ## end if(abs(d) > sqrt(.Machine$double.eps))
+        } ## end for(j in 1:nrnotpen)
+      } ## if(any.notpen)
+      
       ## Optimize the *penalized* parameter groups
-      for(j in guessed.active){ ##for(j in 1:nrpen){
+      for(j in guessed.active){ 
         ind  <- ipen.which[[j]]
         npar <- ipen.tab[j]
 
-        coef.ind <- coef[ind]
+        coef.ind       <- coef[ind]
         cross.coef.ind <- crossprod(coef.ind)
 
         ## Design matrix of the current group
         Xj <- x.pen[[j]] 
 
-
+        ## Negative gradient of the current group
         ngrad <- c(ngradient(Xj, y, mu, weights, ...))
+
+        ## Update the Hessian if necessary
         if(update.hess == "always"){
           diagH <- numeric(length(ind))
-          for(i in 1:length(ind)) ## for loop seems to be faster than sapply
+          for(i in 1:length(ind)){ ## for loop seems to be faster than sapply
             diagH[i] <- nhessian(Xj[,i,drop = FALSE], mu, weights, ...)
-          
+          }
           nH <- min(max(diagH, lower), upper)
         }else{
           nH <- nH.pen[j]
         }
-        cond <- -ngrad + nH * coef.ind 
-        cond.norm2 <- crossprod(cond) #sum(cond^2)
-        
-        ## Check whether the Minimum is at c(0, 0, ...) via the condition on
-        ## the subgradient.
+
+        cond       <- -ngrad + nH * coef.ind
+        cond.norm2 <- crossprod(cond) 
+
+        ## Check the condition whether the minimum is at the non-differentiable
+        ## position (-coef.ind) via the condition on the subgradient.
         border <- penscale(npar) * l
         if(cond.norm2 > border^2){
           d <- (1 / nH) *
             (-ngrad - l * penscale(npar) * (cond / sqrt(cond.norm2)))
+          d <- zapsmall(c(coef.ind, d))[-(1:npar)]
         }else{
           d <- -coef.ind
         }
+
+        ## If !all(d == 0), we have to do a line search
         if(!all(d == 0)){
-          scale <- min(start.pen[j] / beta, 1) ##1 
+          scale <- min(start.pen[j] / beta, 1)
           qh <- sum(ngrad * d) + 
             l * penscale(npar) * sqrt(crossprod(coef.ind + d)) -
               l * penscale(npar)* sqrt(cross.coef.ind)
-
+          
           coef.test      <- coef
           coef.test[ind] <- coef.ind + scale * d
           Xjd            <- c(Xj %*% d)
           eta.test       <- eta + Xjd * scale
           fn.val.test    <- nloglik(y, eta.test, weights, ...)
           fn.val0        <- nloglik(y, eta, weights, ...)
-
-          while(fn.val.test - fn.val0 +
-                l  * penscale(npar) * sqrt(crossprod(coef.test[ind])) -
-                l  * penscale(npar) * sqrt(cross.coef.ind) >
-                sigma * scale * qh){
+          
+          left <- fn.val.test - fn.val0 +
+            l  * penscale(npar) * sqrt(crossprod(coef.test[ind])) -
+              l  * penscale(npar) * sqrt(cross.coef.ind)
+          right <- sigma * scale * qh
+          while(left > right & scale > 10^-30){
+            ##cat("Doing line search (pen)\n")
             scale          <- scale * beta
             coef.test[ind] <- coef.ind + scale * d
             eta.test       <- eta + Xjd * scale
             fn.val.test    <- nloglik(y, eta.test, weights, ...)
-          }
+            
+            left <- fn.val.test - fn.val0 +
+              l  * penscale(npar) * sqrt(crossprod(coef.test[ind])) -
+                l  * penscale(npar) * sqrt(cross.coef.ind)
+            right <- sigma * scale * qh
+          } ## end while(left > right & qh != 0)
           coef <- coef.test
           eta  <- eta.test
           mu   <- invlink(eta)
           start.pen[j] <- scale
-        }
+        } ## end if(!all(d == 0))
         norms.pen[j] <- sqrt(crossprod(coef[ind]))
-      }
+      } ## end for(j in guessed.active)
       
       fn.val <- nloglik(y, eta, weights, ...) +
         l * sum(penscale(ipen.tab) * norms.pen)
       
-      ## Relative convergence criteria
+      ## Relative difference with respect to parameter vector
       d.par <- sqrt(crossprod(coef - coef.old)) / (1 + sqrt(crossprod(coef)))
 
+      ## Relative difference with respect to function value (penalized
+      ## likelihood)
       d.fn <- (fn.val.old - fn.val) / (1 + abs(fn.val))
+
+      ## Print out improvement if desired (trace >= 2)
       if(trace >= 2){
         cat("d.fn:", d.fn, " d.par:", d.par, " nr.var:",
             sum(coef != 0), "\n")
       }
 
-      ## Check whether the sub-problem is already finished
+      ## If we are working on a sub-set of predictors and have converged
+      ## we stop the optimization and will do a loop through all
+      ## predictors in the next run. Therefore we set counter = 0.
       if(d.fn <= tol & d.par <= sqrt(tol)){
         counter <- 0 ## will force a run through all groups
         if(trace >= 2 & !do.all)
           cat("...Subproblem (active set) solved\n")
       } 
-        
-    } ## end of while loop
+    } ## end of while(d.fn > tol | d.par > sqrt(tol) | !do.all)
 
     if(trace == 1)
       cat("Lambda:", l, " nr.var:", sum(coef != 0), "\n")
@@ -427,18 +459,22 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
     grad.m[,pos]            <- ngradient(x, y, mu, weights, ...)
     linear.predictors[,pos] <- eta
     fitted[,pos]            <- invlink(eta)
-  }
+  } ## end for(pos in 1:nrlambda){
 
-  ## Transform the coefficients back to the original scale
+  ## Transform the coefficients back to the original scale if the design
+  ## matrix was standardized
   if(standardize){
     if(any.notpen)
-      coef.m[inotpen.which,] <- scale.notpen * coef.m[inotpen.which,] 
+      coef.m[inotpen.which,] <- scale.notpen * coef.m[inotpen.which,]
+    ## For df > 1 we have to use a matrix inversion to go back to the
+    ## original scale
     for(j in 1:length(ipen.which)){
       ind <- ipen.which[[j]]
       coef.m[ind,] <- solve(scale.pen[[j]], coef.m[ind,,drop = FALSE])
     }
   }
-  
+
+  ## Overwrite values of x.old if we don't want to save it
   if(!save.x)
     x.old <- NULL
   if(!save.y)
@@ -456,11 +492,11 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
               nloglik      = nloglik.v,
               fitted       = fitted,
               linear.predictors = linear.predictors,
-              fn.val   = fn.val.v,
-              weights  = weights,
-              offset   = offset,
-              control  = control,
-              call     = match.call())
+              fn.val       = fn.val.v,
+              weights      = weights,
+              offset       = offset,
+              control      = control,
+              call         = match.call())
   structure(out, class = "grplasso")
 }
 

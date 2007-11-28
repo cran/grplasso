@@ -15,7 +15,7 @@ setClass("grpl.control",
          prototype = list(
            save.x       = FALSE,
            save.y       = TRUE,
-           update.hess  = "always",
+           update.hess  = "lambda",
            update.every = 3,
            inner.loops  = 10,
            tol          = 5 * 10^-8,
@@ -51,7 +51,7 @@ setClass("grpl.control",
 )
 
 grpl.control <- function(save.x = FALSE, save.y = TRUE,
-                         update.hess = c("always", "lambda"),
+                         update.hess = c("lambda", "always"),
                          update.every = 3, inner.loops = 10,
                          tol = 5 * 10^-8, lower = 10^-2, upper = Inf,
                          beta = 0.5, sigma = 0.1, trace = 1){
