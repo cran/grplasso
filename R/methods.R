@@ -3,7 +3,7 @@ print.grplasso <- function(x, digits = 4, ...)
   ## Purpose: Print an object of class "grplasso"
   ## ----------------------------------------------------------------------
   ## Arguments:
-  ## x: Object of class "grplasso"
+  ## x:      Object of class "grplasso"
   ## digits: nr of digits to print
   ## ----------------------------------------------------------------------
   ## Author: Lukas Meier, Date: 30 Mar 2006, 18:01
@@ -32,12 +32,12 @@ plot.grplasso <- function(x, type = "coefficients", col = NULL, ...)
   ##          coefficients or the l2-norm of the coefficient groups.
   ## ----------------------------------------------------------------------
   ## Arguments:
-  ## x: a grplasso object
+  ## x:    a grplasso object
   ## type: what should be on the y-axis? Coefficients (dummy
   ##       variables)?
-  ## col: a vector indicating the color of the different solution
-  ##      paths. The length should equal the number of coefficients. 
-  ## ...: other parameters to be passed to the plotting functions.
+  ## col:  a vector indicating the color of the different solution
+  ##       paths. The length should equal the number of coefficients. 
+  ## ...:  other parameters to be passed to the plotting functions.
   ## ----------------------------------------------------------------------
   ## Author: Lukas Meier, Date:  7 Apr 2006, 08:34
 
@@ -100,7 +100,12 @@ predict.grplasso <- function(object, newdata,
                    response = fitted(object))
     if(!is.null(na.act))
       pred <- napredict(na.act, pred)
-    
+
+    if(dim(pred)[2] == 1)
+      pred <- pred[,1,drop = TRUE]
+
+    attr(pred, "lambda") <- object$lambda
+
     return(pred)
   }
   if(!is.null(tt <- object$terms)){ ## if we have a terms object in the fit
@@ -127,11 +132,16 @@ predict.grplasso <- function(object, newdata,
     
   pred <- switch(type,
                  link = pred,
-                 response = apply(pred, 2, object$model@invlink))
+                 response = object$model@invlink(pred))
+                 ##apply(pred, 2, object$model@invlink))
 
   if(!is.null(na.action))
     pred <- napredict(na.action, pred)
 
+  if(dim(pred)[2] == 1)
+    pred <- pred[,1,drop = TRUE]
+
+  attr(pred, "lambda") <- object$lambda
   pred
 }
 
@@ -143,6 +153,38 @@ fitted.grplasso <- function(object, ...)
   ## ----------------------------------------------------------------------
   ## Author: Lukas Meier, Date: 26 Jun 2006, 12:11
 
-  object$fitted
+  out <- object$fitted
+  attr(out, "lambda") <- object$lambda
+  out
 }
+
+"[.grplasso" <- function(x, i){
+  
+  ## First get dimensions of the original object x
+
+  nrlambda <- length(x$lambda)
+
+  if(missing(i))
+    i <- 1:nrlambda
+
+  ## Error checking
+  ## ...
+
+  ## Subset the object
+  fit.red <- x
+  
+  fit.red$coefficients <- coef(x)[,i,drop = FALSE]
+  if(length(fit.red$coefficients) == 0)
+    stop("Not allowed to remove everything!")
+
+  fit.red$lambda       <- x$lambda[i]
+  fit.red$ngradient    <- x$ngradient[,i,drop = FALSE]
+  fit.red$nloglik      <- x$nloglik[i]
+  fit.red$fitted       <- fitted(x)[,i]
+  fit.red$linear.predictors <- x$linear.predictors[,i,drop = FALSE]
+  fit.red$fn.val       <- x$fn.val[i]
+  
+  fit.red
+}
+
 

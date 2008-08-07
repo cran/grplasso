@@ -11,7 +11,9 @@ Objects can be created by calls of the form \code{grpl.model(...)}}
 \section{Slots}{
   \describe{
     \item{\code{invlink}}{a function with arguments \code{eta}
-    implementing the inverse link function.}
+      implementing the inverse link function.}
+    \item{\code{link}}{a function with arguments \code{mu}
+      implementing the link function.}
     \item{\code{nloglik}}{a function with arguments \code{y}, \code{mu} and
     \code{weights} implementing the \emph{negative}
     log-likelihood function.} 

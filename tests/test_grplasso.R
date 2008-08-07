@@ -48,7 +48,7 @@ fit.B <- grplasso(y ~ Pos.1 * Pos.2 * Pos.3, nonpen = ~ 1, data = splice,
 #plot(fit.A, log = "x")
 #plot(fit.B, log = "x")
 
-if(max(abs(fit.A$fn.val - fit.B$fn.val) / fit.A$fn.val) > 5 * 10^-8)
+if(max(abs(fit.A$fn.val - fit.B$fn.val) / fit.A$fn.val) > tol)
   stop("Inconsistent result when changing the encoding scheme (fn.val)")
 
 pred.A <- predict(fit.A, newdata = splice, type = "response")
@@ -61,12 +61,11 @@ if(max(m) > sqrt(tol))
 #range(pred.A - pred.B)
 #range((pred.A - pred.B) / (1 + pred.A))
 
-
-#############################################
-##                                         ##
-## See whether offset is working correctly ##
-##                                         ##
-#############################################
+###############################################
+##                                           ##
+## Check whether offset is working correctly ##
+##                                           ##
+###############################################
 
 ## Fit an ordinary model, with unpenalized intercept
 lambda.max <- lambdamax(y ~ ., data = splice,
@@ -87,4 +86,18 @@ d.coef[1] <- d.coef[1] + shift
 
 if(max(abs(d.coef) / (1 + abs(coef(fit1)))) > 5 * 10^-4)
   stop("Inconsistent result when using offset (d.coef)")
+
+#################################################
+##                                             ##
+## Check whether max.iter is working correctly ##
+##                                             ##
+#################################################
+
+fit.maxiter <- grplasso(y ~ Pos.1 * Pos.2, data = splice, lambda = c(1, 0.1),
+                        control = grpl.control(max.iter = 2, trace = 2,
+                          inner.loops = 0),
+                        contrast = list(Pos.1 = "contr.sum",
+                          Pos.2 = "contr.sum"))
+
+stopifnot(all(!fit.maxiter$converged))
 

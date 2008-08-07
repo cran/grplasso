@@ -8,8 +8,9 @@
 \usage{
 grpl.control(save.x = FALSE, save.y = TRUE,
              update.hess = c("lambda", "always"), update.every = 3,
-             inner.loops = 10, tol = 5 * 10^-8, lower = 10^-2,
-             upper = Inf, beta = 0.5, sigma = 0.1, trace = 1)
+             inner.loops = 10, line.search = TRUE, max.iter = 500,
+             tol = 5 * 10^-8, lower = 10^-2, upper = Inf, beta = 0.5,
+             sigma = 0.1, trace = 1)
 }
 \arguments{
   \item{save.x}{a logical indicating whether the design matrix should be saved.}
@@ -26,6 +27,8 @@ grpl.control(save.x = FALSE, save.y = TRUE,
     only the active set (without considering the remaining
     predictors). Useful if the number of predictors is large. Set to 0
     if no inner loops should be performed.}
+  \item{line.search}{Should line searches be performed?}
+  \item{max.iter}{Maximal number of loops through all groups}
   \item{tol}{convergence tolerance; the smaller the more precise, see
     details below.}
   \item{lower}{lower bound for the diagonal approximation of the

@@ -5,6 +5,8 @@ setClass("grpl.control",
            update.hess  = "character",
            update.every = "numeric",
            inner.loops  = "numeric",
+           line.search  = "logical",
+           max.iter     = "numeric",
            tol          = "numeric",
            lower        = "numeric",
            upper        = "numeric",
@@ -18,9 +20,11 @@ setClass("grpl.control",
            update.hess  = "lambda",
            update.every = 3,
            inner.loops  = 10,
+           line.search  = TRUE,
+           max.iter     = 500,
            tol          = 5 * 10^-8,
            lower        = 10^-2,
-           upper        = Inf,
+           upper        = 10^9,
            beta         = 0.5,
            sigma        = 0.1,
            trace        = 1),
@@ -33,6 +37,10 @@ setClass("grpl.control",
            if(ceiling(object@inner.loops) != floor(object@inner.loops) |
               object@inner.loops < 0)
              return("inner.loops has to be a natural number or 0")
+
+           if(ceiling(object@max.iter) != floor(object@max.iter) |
+              object@max.iter <= 0)
+             return("inner.loops has to be a natural number or greater than 0")
 
            if(object@beta <= 0 | object@beta >= 1)
              return("beta has to be in (0, 1)")
@@ -53,6 +61,7 @@ setClass("grpl.control",
 grpl.control <- function(save.x = FALSE, save.y = TRUE,
                          update.hess = c("lambda", "always"),
                          update.every = 3, inner.loops = 10,
+                         line.search = TRUE, max.iter = 500,
                          tol = 5 * 10^-8, lower = 10^-2, upper = Inf,
                          beta = 0.5, sigma = 0.1, trace = 1){
   
@@ -98,6 +107,8 @@ grpl.control <- function(save.x = FALSE, save.y = TRUE,
              update.hess  = update.hess,
              update.every = update.every,
              inner.loops  = inner.loops,
+             line.search  = line.search,
+             max.iter     = max.iter,
              tol          = tol,
              lower        = lower,
              upper        = upper,

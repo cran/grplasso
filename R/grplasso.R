@@ -88,6 +88,9 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
   if(!is.numeric(y))
     stop("y has to be of type 'numeric'")
 
+  if(NROW(x) != length(y))
+    stop("x and y have not correct dimensions")
+  
   if(!model@check(y))
     stop("y has wrong format")
 
@@ -119,6 +122,8 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
   update.hess  <- control@update.hess
   update.every <- control@update.every
   inner.loops  <- control@inner.loops
+  line.search  <- control@line.search
+  max.iter     <- control@max.iter
   lower        <- control@lower
   upper        <- control@upper
   save.x       <- control@save.x
@@ -135,6 +140,20 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
   if(nrlambda > 1 & update.hess == "always"){
     cat("More than one lambda value and update.hess=\"always\" \n")
     cat("You may want to use update.hess=\"lambda\" \n")
+  }
+
+  ## For the linear model, the Hessian is constant and has hence to be
+  ## computed only *once*
+  
+  if(model@name == "Linear Regression Model"){
+    if(update.hess != "lambda"){
+      update.hess <- "lambda"
+      cat("Setting update.hess = 'lambda'\n")
+    }
+    if(update.every <= length(lambda)){
+      update.every <- length(lambda) + 1
+      cat("Setting update.every = length(lambda) + 1\n")
+    }
   }
   
   ## Which are the non-penalized parameters?
@@ -205,6 +224,8 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
   fitted    <- linear.predictors <- matrix(0, nrow = nrowx, ncol = nrlambda,
                                            dimnames = list(rownames(x), lambda))
 
+  converged <- rep(TRUE, nrlambda)
+  
   ## *Initial* vector of linear predictors (eta) and transformed to the
   ## scale of the response (mu)
   eta <- offset + c(x %*% coef)
@@ -229,7 +250,7 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
     if(update.hess == "lambda" & pos %% update.every == 0 | pos == 1){
       ## Non-penalized groups
       if(any.notpen){
-        for(j in inotpen.which){
+        for(j in 1:nrnotpen){ ## changed
           Xj <- x.notpen[[j]] 
           nH.notpen[j] <- min(max(nhessian(Xj, mu, weights, ...), lower), upper)
         }
@@ -237,7 +258,7 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
       ## Penalized groups
       for(j in 1:nrpen){
         ind <- ipen.which[[j]]
-        Xj <- x.pen[[j]] 
+        Xj  <- x.pen[[j]] 
         diagH <- numeric(length(ind))
         for(i in 1:length(ind)){
           diagH[i] <- nhessian(Xj[, i, drop = FALSE], mu, weights, ...)
@@ -254,11 +275,22 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
     do.all <- FALSE
     d.fn   <- d.par <- 1
 
-    counter <- 1
-
+    counter    <- 1 ## Count the sub-loops
+    iter.count <- 0 ## Count the loops through *all* groups
+    
     ## Stop the following while loop if the convergence criterion is fulfilled
     ## but only if we have gone through all the coordinates
+    
+    ##while(d.fn > tol | d.par > sqrt(tol) | !do.all){
     while(d.fn > tol | d.par > sqrt(tol) | !do.all){
+      ## Escape loop if maximal iteration reached
+      if(iter.count >= max.iter){
+        converged[pos] <- FALSE
+        warning(paste("Maximal number of iterations reached for lambda[", pos,
+                      "]", sep = ""))
+        break
+      }
+      
       ## Save the parameter vector and the function value of the previous step
       fn.val.old <- fn.val
       coef.old   <- coef
@@ -266,7 +298,7 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
       ## Check whether we have some useful information from the previous step
 
       ## Go through all groups if counter == 0 or if we have exceeded the
-      ## number of innter loops (inner.loops)
+      ## number of inner loops (inner.loops)
       if(counter == 0 | counter > inner.loops){
         do.all <- TRUE
         guessed.active <- 1:nrpen
@@ -287,11 +319,14 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
           counter <- counter + 1
         }
       }
-
+      if(do.all)
+        iter.count <- iter.count + 1
+      
       ## These are used for the line search, start at initial value 1
+      ## They are currently here for security reasons
       start.notpen <- rep(1, nrnotpen)
       start.pen    <- rep(1, nrpen)
-
+      
       if(any.notpen){
         ## Optimize the *non-penalized* parameters
         for(j in 1:nrnotpen){
@@ -312,36 +347,55 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
           d <- -(1 / nH) * ngrad
           ## Set to 0 if the value is very small compared to the current
           ## coefficient estimate
+
           d <- zapsmall(c(coef[ind], d))[2]
+          
           ## If d != 0, we have to do a line search
           if(d != 0){
-            qh    <- sum(ngrad * d)
             scale <- min(start.notpen[j] / beta, 1) ##1 
             coef.test      <- coef
             coef.test[ind] <- coef[ind] + scale * d
+            
             Xjd <- Xj * d
             eta.test     <- eta + Xjd * scale
-            fn.val0      <- nloglik(y, eta, weights, ...)
-            fn.val.test  <- nloglik(y, eta.test, weights, ...)
 
-            qh <- zapsmall(c(qh, fn.val0))[1]
+            if(line.search){
+              qh    <- sum(ngrad * d)
 
-            ## Armijo line search. Stop if scale gets too small (10^-30).
-            while(fn.val.test - fn.val0 > sigma * scale * qh & scale > 10^-30){
-              ##cat("Doing line search (nonpen)\n")
-              scale          <- scale * beta
-              coef.test[ind] <- coef[ind] + scale * d
-              eta.test       <- eta + Xjd * scale
-              fn.val.test    <- nloglik(y, eta.test, weights, ...)
+              fn.val0      <- nloglik(y, eta, weights, ...)
+              fn.val.test  <- nloglik(y, eta.test, weights, ...)
+
+              qh <- zapsmall(c(qh, fn.val0))[1]
+            
+              ## Armijo line search. Stop if scale gets too small (10^-30).
+              while(fn.val.test - fn.val0 > sigma * scale * qh & scale > 10^-30){
+                ##cat("Doing line search (nonpen)\n")
+                scale          <- scale * beta
+                coef.test[ind] <- coef[ind] + scale * d
+                eta.test       <- eta + Xjd * scale
+                fn.val.test    <- nloglik(y, eta.test, weights, ...)
+              }
+            } ## end if(line.search)
+            if(scale <= 10^-30){ ## Do nothing in that case
+              ## coef.test <- coef 
+              ## eta.test  <- eta
+              ## mu        <- mu
+              start.notpen[j] <- 1
+            }else{ ## Update the information
+              coef <- coef.test
+              eta  <- eta.test
+              mu   <- invlink(eta)
+              start.notpen[j] <- scale
             }
+          
             ## Save the scaling factor for the next iteration (in order that
             ## we only have to do very few line searches)
-            start.notpen[j] <- scale
-
+            ## start.notpen[j] <- scale
+            
             ## Update the remaining information
-            coef <- coef.test
-            eta  <- eta.test
-            mu   <- invlink(eta)
+            ## coef <- coef.test
+            ## eta  <- eta.test
+            ## mu   <- invlink(eta)
           } ## end if(abs(d) > sqrt(.Machine$double.eps))
         } ## end for(j in 1:nrnotpen)
       } ## if(any.notpen)
@@ -370,55 +424,69 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
         }else{
           nH <- nH.pen[j]
         }
-
+        
         cond       <- -ngrad + nH * coef.ind
-        cond.norm2 <- crossprod(cond) 
-
+        cond.norm2 <- crossprod(cond)
+        
         ## Check the condition whether the minimum is at the non-differentiable
         ## position (-coef.ind) via the condition on the subgradient.
         border <- penscale(npar) * l
         if(cond.norm2 > border^2){
           d <- (1 / nH) *
             (-ngrad - l * penscale(npar) * (cond / sqrt(cond.norm2)))
-          d <- zapsmall(c(coef.ind, d))[-(1:npar)]
+          ##d <- zapsmall(c(coef.ind, d))[-(1:npar)]
         }else{
           d <- -coef.ind
         }
-
+        
         ## If !all(d == 0), we have to do a line search
         if(!all(d == 0)){
           scale <- min(start.pen[j] / beta, 1)
-          qh <- sum(ngrad * d) + 
-            l * penscale(npar) * sqrt(crossprod(coef.ind + d)) -
-              l * penscale(npar)* sqrt(cross.coef.ind)
           
           coef.test      <- coef
           coef.test[ind] <- coef.ind + scale * d
           Xjd            <- c(Xj %*% d)
           eta.test       <- eta + Xjd * scale
-          fn.val.test    <- nloglik(y, eta.test, weights, ...)
-          fn.val0        <- nloglik(y, eta, weights, ...)
-          
-          left <- fn.val.test - fn.val0 +
-            l  * penscale(npar) * sqrt(crossprod(coef.test[ind])) -
-              l  * penscale(npar) * sqrt(cross.coef.ind)
-          right <- sigma * scale * qh
-          while(left > right & scale > 10^-30){
-            ##cat("Doing line search (pen)\n")
-            scale          <- scale * beta
-            coef.test[ind] <- coef.ind + scale * d
-            eta.test       <- eta + Xjd * scale
+
+          if(line.search){
+            qh <- sum(ngrad * d) + 
+              l * penscale(npar) * sqrt(crossprod(coef.ind + d)) -
+                l * penscale(npar)* sqrt(cross.coef.ind)
+
             fn.val.test    <- nloglik(y, eta.test, weights, ...)
-            
+            fn.val0        <- nloglik(y, eta, weights, ...)
+          
             left <- fn.val.test - fn.val0 +
               l  * penscale(npar) * sqrt(crossprod(coef.test[ind])) -
                 l  * penscale(npar) * sqrt(cross.coef.ind)
             right <- sigma * scale * qh
-          } ## end while(left > right & qh != 0)
-          coef <- coef.test
-          eta  <- eta.test
-          mu   <- invlink(eta)
-          start.pen[j] <- scale
+            while(left > right & scale > 10^-30){
+              ##cat("Doing line search (pen)\n")
+              scale          <- scale * beta
+              coef.test[ind] <- coef.ind + scale * d
+              eta.test       <- eta + Xjd * scale
+              fn.val.test    <- nloglik(y, eta.test, weights, ...)
+            
+              left <- fn.val.test - fn.val0 +
+                l  * penscale(npar) * sqrt(crossprod(coef.test[ind])) -
+                  l  * penscale(npar) * sqrt(cross.coef.ind)
+              right <- sigma * scale * qh
+            } ## end while(left > right & qh != 0)
+          } ## end if(line.search)
+          ## If we escaped the while loop because 'scale' is too small
+          ## (= we add nothing), we just stay at the current solution to
+          ## prevent tiny values
+          if(scale <= 10^-30){ ## Do *nothing* in that case
+            ##coef.test <- coef
+            ##eta.test  <- eta
+            ##mu        <- mu
+            start.pen[j] <- 1
+          }else{
+            coef <- coef.test
+            eta  <- eta.test
+            mu   <- invlink(eta)
+            start.pen[j] <- scale
+          }
         } ## end if(!all(d == 0))
         norms.pen[j] <- sqrt(crossprod(coef[ind]))
       } ## end for(j in guessed.active)
@@ -435,18 +503,20 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
 
       ## Print out improvement if desired (trace >= 2)
       if(trace >= 2){
-        cat("d.fn:", d.fn, " d.par:", d.par, " nr.var:",
-            sum(coef != 0), "\n")
+        cat("d.fn:", d.fn, " d.par:", d.par,
+            " nr.var:", sum(coef != 0), "\n")
       }
 
       ## If we are working on a sub-set of predictors and have converged
       ## we stop the optimization and will do a loop through all
       ## predictors in the next run. Therefore we set counter = 0.
+      
+      ##if(d.fn <= tol & d.par <= sqrt(tol)){
       if(d.fn <= tol & d.par <= sqrt(tol)){
         counter <- 0 ## will force a run through all groups
         if(trace >= 2 & !do.all)
           cat("...Subproblem (active set) solved\n")
-      } 
+      }
     } ## end of while(d.fn > tol | d.par > sqrt(tol) | !do.all)
 
     if(trace == 1)
@@ -493,6 +563,7 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
               fitted       = fitted,
               linear.predictors = linear.predictors,
               fn.val       = fn.val.v,
+              converged    = converged,
               weights      = weights,
               offset       = offset,
               control      = control,

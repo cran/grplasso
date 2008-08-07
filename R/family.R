@@ -1,5 +1,6 @@
 setClass("grpl.model", representation = representation(
     invlink          = "function",
+    link             = "function",                     
     nloglik          = "function",                   
     ngradient        = "function",
     nhessian         = "function",
@@ -13,13 +14,15 @@ setMethod("show", "grpl.model", function(object) {
     cat("Comment:", object@comment, "\n\n")
 })
 
-grpl.model <- function(invlink, nloglik, ngradient, nhessian,
+grpl.model <- function(invlink, link, nloglik, ngradient, nhessian,
                        check, name = "user-specified",
                        comment = "user-specified"){
   ## Purpose: Generates models to be used for the Group Lasso algorithm.
   ## ----------------------------------------------------------------------
   ## Arguments:
   ## invlink: a function with arguments "eta" implementing the inverse link
+  ##          function.
+  ## link:    a function with arguments "mu" implementing the link
   ##          function.
   ## nloglik: a function with arguments "y", "mu" and "weights"
   ##          implementing the negative log-likelihood function.
@@ -35,19 +38,21 @@ grpl.model <- function(invlink, nloglik, ngradient, nhessian,
   ## Author: Lukas Meier, Date:  1 Jun 2006, 10:12
 
     RET <- new("grpl.model",
-               invlink          = invlink,
-               nloglik          = nloglik,
-               ngradient        = ngradient,
-               nhessian         = nhessian,
-               check            = check,
-               name             = name,
-               comment          = comment)
+               invlink   = invlink,
+               link      = link,
+               nloglik   = nloglik,
+               ngradient = ngradient,
+               nhessian  = nhessian,
+               check     = check,
+               name      = name,
+               comment   = comment)
     RET
 }
 
 ## Logistic Regression 
 LogReg <- function(){
-  grpl.model(invlink   = function(eta) c(1 / (1 + exp(-eta))),
+  grpl.model(invlink   = function(eta) 1 / (1 + exp(-eta)),
+             link      = function(mu) log(mu / (1 - mu)),
              nloglik   = function(y, eta, weights, ...)
                -sum(weights * (y * eta - log(1 + exp(eta)))),
              ngradient = function(x, y, mu, weights, ...)
@@ -62,20 +67,22 @@ LogReg <- function(){
 ## Linear Regression
 LinReg <- function(){
   grpl.model(invlink  = function(eta) eta,
-            nloglik   = function(y, eta, weights, ...)
-              sum(weights * (y - eta)^2),
-            ngradient = function(x, y, mu, weights, ...)
-              -2 * crossprod(x, weights * (y - mu)),
-            nhessian  = function(x, mu, weights, ...)
-              2 * crossprod(x, weights * x),
-            check     = function(y) TRUE,
-            name      = "Linear Regression Model",
-            comment   = "Use update.hess=\"lambda\" in grpl.control because the Hessian is constant")
+             link  = function(mu) mu,
+             nloglik   = function(y, eta, weights, ...)
+               sum(weights * (y - eta)^2),
+             ngradient = function(x, y, mu, weights, ...)
+               -2 * crossprod(x, weights * (y - mu)),
+             nhessian  = function(x, mu, weights, ...)
+               2 * crossprod(x, weights * x),
+             check     = function(y) TRUE,
+             name      = "Linear Regression Model",
+             comment   = "Use update.hess=\"lambda\" in grpl.control because the Hessian is constant")
 }
 
 ## Poisson Regression
 PoissReg <- function(){
   grpl.model(invlink    = function(eta) exp(eta),
+             link       = function(mu) log(mu),
              nloglik    = function(y, eta, weights, ...)
                sum(weights * (exp(eta) - y * eta)),
              ngradient  = function(x, y, mu, weights, ...)

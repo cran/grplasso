@@ -18,4 +18,5 @@ S3method(plot, grplasso)
 S3method(print, grplasso)
 S3method(predict, grplasso)
 S3method(fitted, grplasso)
+S3method("[", grplasso)
 

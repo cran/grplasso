@@ -227,7 +227,7 @@ lambdamax.default <- function(x, y, index, weights = rep(1, length(y)),
   if(any.notpen){
     par0 <- do.call(nlminb, args = c(list(start = coef.npen,
                               objective = helper), nlminb.opt))$par
-    mu0 <- model@invlink(offset + x.npen %*% par0)
+    mu0  <- model@invlink(offset + x.npen %*% par0)
   }else{
     mu0 <- model@invlink(offset)
   }

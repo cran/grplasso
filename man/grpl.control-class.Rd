@@ -28,6 +28,8 @@
     when solving only the active set (without considering the remaining
     predictors). Useful if the number of predictors is large. Set to 0
     if no inner loops should be performed.}
+  \item{\code{line.search}}{Should line searches be performed?}
+  \item{\code{max.iter}}{Maximal number of loops through all groups}
   \item{\code{tol}}{convergence tolerance; the smaller the more precise.}
   \item{\code{lower}}{lower bound for the diagonal approximation of the
     corresponding block submatrix of the Hessian of the negative

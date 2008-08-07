@@ -6,7 +6,7 @@
 \title{Group Lasso models}
 \description{Generates models to be used for the Group Lasso algorithm.}
 \usage{
-grpl.model(invlink, nloglik, ngradient, nhessian, check,
+grpl.model(invlink, link, nloglik, ngradient, nhessian, check,
            name = "user-specified", comment = "user-specified")
 LogReg()
 LinReg()
@@ -15,6 +15,8 @@ PoissReg()
 \arguments{
   \item{invlink}{a function with arguments \code{eta}
     implementing the inverse link function.}
+  \item{link}{a function with arguments \code{mu}
+    implementing the link function.}
   \item{nloglik}{a function with arguments \code{y}, \code{mu} and
     \code{weights} implementing the \emph{negative} log-likelihood function.}
   \item{ngradient}{a function with arguments \code{x}, \code{y},
