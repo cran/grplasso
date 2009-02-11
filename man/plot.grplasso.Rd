@@ -6,7 +6,7 @@
 \method{plot}{grplasso}(x, type = "coefficients", col = NULL, ...)
 }
 \arguments{
-  \item{x}{a grplasso object}
+  \item{x}{a \code{grplasso} object}
   \item{type}{type = "coefficients" plots coefficients with respect to
     the input variables, even if \code{standardize = TRUE} is used in
     \code{grplasso}.}

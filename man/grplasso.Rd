@@ -78,8 +78,9 @@ grplasso(x, ...)
   \item{lambda}{vector of lambda values where coefficients were calculated.}
   \item{index}{grouping index vector.}
 }
-\references{Lukas Meier, Sara van de Geer and Peter B\"uhlmann (2006), \emph{The
-    Logistic Group Lasso}, available at
+\references{Lukas Meier, Sara van de Geer and Peter B\"uhlmann (2008), \emph{The
+    Group Lasso for Logistic Regression}, Journal of the Royal
+  Statistical Society, 70 (1), 53 - 71, see also
     \url{http://stat.ethz.ch/~meier/logistic-grouplasso.php}} 
 \author{Lukas Meier, \email{meier@stat.math.ethz.ch}}
 \examples{

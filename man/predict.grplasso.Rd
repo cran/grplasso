@@ -18,7 +18,7 @@
     the scale of the response variable, i.e. \code{type = "response"}
     applies the inverse link function to the linear predictors.}
   \item{na.action}{function determining what should be done with missing values
-    in \code{newdata}.  The default is to predict \code{NA}.}
+    in \code{newdata}. The default is to predict \code{NA}.}
   \item{...}{other options to be passed to the predict function.}
 }
 \value{

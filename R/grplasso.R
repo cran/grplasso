@@ -138,8 +138,7 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
   nrowx    <- nrow(x)
 
   if(nrlambda > 1 & update.hess == "always"){
-    cat("More than one lambda value and update.hess=\"always\" \n")
-    cat("You may want to use update.hess=\"lambda\" \n")
+    warning("More than one lambda value and update.hess = \"always\". You may want to use update.hess = \"lambda\"")
   }
 
   ## For the linear model, the Hessian is constant and has hence to be
@@ -148,11 +147,13 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
   if(model@name == "Linear Regression Model"){
     if(update.hess != "lambda"){
       update.hess <- "lambda"
-      cat("Setting update.hess = 'lambda'\n")
+      if(trace >= 1)
+        cat("Setting update.hess = 'lambda'\n")
     }
     if(update.every <= length(lambda)){
       update.every <- length(lambda) + 1
-      cat("Setting update.every = length(lambda) + 1\n")
+      if(trace >= 1)
+        cat("Setting update.every = length(lambda) + 1\n")
     }
   }
   
@@ -166,8 +167,7 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
     ipen <- index[-inotpen.which]
     ipen.which <- split((1:ncolx)[-inotpen.which], ipen)
   }else{
-    cat("\n...All groups are penalized. Did you include an intercept in your\n")
-    cat("   design matrix and really want to penalize it?\n")
+    warning("All groups are penalized. Did you include an intercept in your design matrix and really want to penalize it?")
     ipen <- index
     ipen.which <- split((1:ncolx), ipen)
   }
@@ -181,7 +181,7 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
   x.old <- x
   ## Standardize the design matrix -> blockwise orthonormalization
   if(standardize){
-    cat("...Using standardized design matrix.\n")
+    ##warning("...Using standardized design matrix.\n")
     stand        <- blockstand(x, ipen.which, inotpen.which)
     x            <- stand$x
     scale.pen    <- stand$scale.pen

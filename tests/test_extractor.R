@@ -25,7 +25,7 @@ fit <- grplasso(cbind(1,x), y, index = c(NA, rep(1:5, each = 2)),
 if(any(range(coef(fit)[,3:4] - coef(fit[3:4])) != 0))
   stop("Subsetting not working correctly")
 
-## Check whether errors are produces for non-valid examples
+## Check whether errors are produced for non-valid examples
 m1 <- inherits(try(fit[1:12], silent = TRUE), "try-error")
 
 ## Try to remove everything
