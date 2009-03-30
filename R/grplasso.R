@@ -5,7 +5,7 @@ grplasso.formula <- function(formula, nonpen = ~ 1, data,
                              weights, subset, na.action,
                              lambda, coef.init,
                              penscale = sqrt, model = LogReg(),
-                             standardize = TRUE,
+                             center = TRUE, standardize = TRUE,
                              control = grpl.control(),
                              contrasts = NULL, ...){
   ## Purpose:
@@ -18,7 +18,7 @@ grplasso.formula <- function(formula, nonpen = ~ 1, data,
   m <- match.call(expand.dots = FALSE)
   
   ## Remove not-needed stuff to create the model-frame
-  m$nonpen <- m$lambda <- m$coef.init <- m$penscale <- m$model <-
+  m$nonpen <- m$lambda <- m$coef.init <- m$penscale <- m$model <- m$center <- 
     m$standardize <- m$contrasts <- m$control <- m$... <- NULL
 
   l <- create.design(m, formula, nonpen, data, weights, subset, na.action,
@@ -31,8 +31,8 @@ grplasso.formula <- function(formula, nonpen = ~ 1, data,
                           offset = l$off, lambda = lambda,
                           coef.init = coef.init,
                           penscale = penscale, model = model,
-                          standardize = standardize, control = control,
-                          ...)
+                          center = center, standardize = standardize, 
+                          control = control, ...)
   fit$terms <- l$Terms
   fit$contrasts <- attr(l$x, "contrasts")
   fit$xlevels <- .getXlevels(l$Terms, l$mf)
@@ -44,7 +44,7 @@ grplasso.formula <- function(formula, nonpen = ~ 1, data,
 grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
                              offset = rep(0, length(y)), lambda,
                              coef.init = rep(0, ncol(x)),
-                             penscale = sqrt, model = LogReg(),
+                             penscale = sqrt, model = LogReg(), center = TRUE, 
                              standardize = TRUE, control = grpl.control(), ...)
 {
   ## Purpose: Function to fit a solution (path) of a group lasso problem
@@ -100,7 +100,11 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
 
   if(any(weights < 0))
     stop("Negative weights not allowed")
-  
+
+  if((!isTRUE(all.equal(weights, rep(weights[1], length(y))))) &
+     (center | standardize))
+    warning("Weights not considered for centering/scaling at the moment...")
+
   if(length(offset) != length(y))
     stop("length(offset) not equal length(y)")
 
@@ -162,12 +166,30 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
   inotpen.which <- which(is.na(index))
   nrnotpen      <- length(inotpen.which)
   
+  intercept.which <- which(apply(x == 1, 2, all))
+  has.intercept   <- length(intercept.which)
+
+  if(length(intercept.which) > 1)
+    stop("Multiple intercepts!")
+
+  has.intercept.notpen <- is.na(index[intercept.which])
+  
+  others.notpen   <- nrnotpen - has.intercept.notpen
+  notpen.int.only <- has.intercept.notpen & !others.notpen
+  
+  if(notpen.int.only & !center)
+    warning("Are you sure you want uncentered predictors in a model with intercept?")
+  
+  if(center & others.notpen)
+    warning("Penalization not adjusted to non-penalized predictors.")
+
   ## Index vector of the penalized parameter groups
   if(any.notpen){
     ipen <- index[-inotpen.which]
     ipen.which <- split((1:ncolx)[-inotpen.which], ipen)
   }else{
-    warning("All groups are penalized. Did you include an intercept in your design matrix and really want to penalize it?")
+    if(has.intercept)
+      warning("All groups are penalized, including the intercept.")
     ipen <- index
     ipen.which <- split((1:ncolx), ipen)
   }
@@ -179,6 +201,18 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
   ipen.tab   <- table(ipen)[as.character(dict.pen)]
   
   x.old <- x
+
+  if(center){
+    ##if(length(intercept.which) == 0)
+    ##  stop("Need intercept term")
+
+    ##if(length(intercept.which) == 1 & !is.na(index[intercept.which]))
+    ##  stop("Need *unpenalized* intercept")
+
+    mu.x <- apply(x[,-intercept.which], 2, mean)
+    x[,-intercept.which] <- sweep(x[,-intercept.which], 2, mu.x)
+  }
+  
   ## Standardize the design matrix -> blockwise orthonormalization
   if(standardize){
     ##warning("...Using standardized design matrix.\n")
@@ -495,8 +529,11 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
         l * sum(penscale(ipen.tab) * norms.pen)
       
       ## Relative difference with respect to parameter vector
-      d.par <- sqrt(crossprod(coef - coef.old)) / (1 + sqrt(crossprod(coef)))
+      ##d.par <- sqrt(crossprod(coef - coef.old)) / (1 + sqrt(crossprod(coef)))
 
+      d.par <-  max(abs(coef - coef.old) / (1 + abs(coef)))
+      ##d.par <-  max(abs(coef - coef.old) / (ifelse(abs(coef), abs(coef), 1)))
+      
       ## Relative difference with respect to function value (penalized
       ## likelihood)
       d.fn <- (fn.val.old - fn.val) / (1 + abs(fn.val))
@@ -535,13 +572,19 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
   ## matrix was standardized
   if(standardize){
     if(any.notpen)
-      coef.m[inotpen.which,] <- scale.notpen * coef.m[inotpen.which,]
+      coef.m[inotpen.which,] <- (1 / scale.notpen) * coef.m[inotpen.which,]
     ## For df > 1 we have to use a matrix inversion to go back to the
     ## original scale
     for(j in 1:length(ipen.which)){
       ind <- ipen.which[[j]]
       coef.m[ind,] <- solve(scale.pen[[j]], coef.m[ind,,drop = FALSE])
     }
+  }
+
+  ## Need to adjust intercept if we have performed centering
+  if(center){
+    coef.m[intercept.which,] <- coef.m[intercept.which,] -
+      apply(coef.m[-intercept.which,,drop = FALSE] * mu.x, 2, sum)   
   }
 
   ## Overwrite values of x.old if we don't want to save it

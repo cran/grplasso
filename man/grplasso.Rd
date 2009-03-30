@@ -11,12 +11,12 @@ grplasso(x, ...)
 
 \method{grplasso}{formula}(formula, nonpen = ~ 1, data, weights = rep(1, length(y)),
          subset, na.action, lambda, coef.init, penscale = sqrt,
-         model = LogReg(), standardize = TRUE, control = grpl.control(),
-         contrasts = NULL, ...)
+         model = LogReg(), center = TRUE, standardize = TRUE,
+         control = grpl.control(), contrasts = NULL, ...)
 
 \method{grplasso}{default}(x, y, index, weights = rep(1, length(y)), offset = rep(0,
          length(y)), lambda, coef.init = rep(0, ncol(x)),
-         penscale = sqrt, model = LogReg(), standardize = TRUE,
+         penscale = sqrt, model = LogReg(), center = TRUE, standardize = TRUE,
          control = grpl.control(), ...)
 }
 \arguments{
@@ -49,6 +49,8 @@ grplasso(x, ...)
   \item{model}{an object of class \code{\link{grpl.model}} implementing
     the negative log-likelihood, gradient, hessian etc. See the
     documentation of \code{\link{grpl.model}} for more details.}
+  \item{center}{logical. If true, the columns of the design matrix will be
+    centered (except a possible intercept column).}
   \item{standardize}{logical. If true, the design matrix will be
     blockwise orthonormalized such that for each block \eqn{X^TX = n 1}.}
   \item{control}{options for the fitting algorithm, see
@@ -93,7 +95,7 @@ names(contr) <- names(splice)[-1]
 
 ## Fit a logistic model 
 fit.splice <- grplasso(y ~ ., data = splice, model = LogReg(), lambda = 20,
-                       contrasts = contr, standardize = TRUE)
+                       contrasts = contr, center = TRUE, standardize = TRUE)
 
 ## Perform the Logistic Group Lasso on a random dataset
 set.seed(79)

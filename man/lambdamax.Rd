@@ -17,7 +17,7 @@ lambdamax(x, ...)
 
 \method{lambdamax}{default}(x, y, index, weights = rep(1, length(y)),
           offset = rep(0, length(y)), coef.init = rep(0, ncol(x)),
-          penscale = sqrt, model = LogReg(), standardize = TRUE,
+          penscale = sqrt, model = LogReg(), center = TRUE, standardize = TRUE,
           nlminb.opt = list(), ...)
 }
 \arguments{
@@ -46,6 +46,8 @@ lambdamax(x, ...)
   \item{model}{an object of class \code{\link{grpl.model}} implementing
     the negative log-likelihood, gradient, hessian etc. See
     \code{\link{grpl.model}} for more details.}
+  \item{center}{logical. If true, the columns of the design matrix will be
+    centered (except a possible intercept column).}
   \item{standardize}{logical. If true, the design matrix will be blockwise
           orthonormalized, such that for each block \eqn{X^TX = n 1}}
   \item{contrasts}{an (optional) list with the contrasts for the factors
@@ -58,6 +60,7 @@ lambdamax(x, ...)
 \value{An object of type numeric is returned.}
 \examples{
 data(splice)
-lambdamax(y ~ ., data = splice, model = LogReg(), standardize = TRUE)
+lambdamax(y ~ ., data = splice, model = LogReg(), center = TRUE,
+          standardize = TRUE)
 }
 \keyword{misc}

@@ -139,7 +139,7 @@ lambdamax.formula <- function(formula, nonpen  = ~ 1, data,
                               weights, subset, na.action,
                               coef.init,
                               penscale = sqrt, model = LogReg(),
-                              standardize = TRUE,
+                              center = TRUE, standardize = TRUE,
                               contrasts = NULL, nlminb.opt = list(), ...)
 {
   ## Purpose: Function to find the maximal value of the penalty parameter
@@ -153,7 +153,7 @@ lambdamax.formula <- function(formula, nonpen  = ~ 1, data,
   m <- match.call(expand.dots = FALSE)
   
   ## Remove not-needed stuff to create the model-frame
-  m$nonpen <- m$lambda <- m$coef.init <- m$penscale <- m$model <-
+  m$nonpen <- m$lambda <- m$coef.init <- m$penscale <- m$model <- m$center <-
     m$standardize <- m$contrasts <- m$... <- NULL
 
   l <- create.design(m, formula, nonpen, data, weights, subset, na.action,
@@ -165,7 +165,7 @@ lambdamax.formula <- function(formula, nonpen  = ~ 1, data,
   lambdamax.default(l$x, y = l$y, index = l$index, weights = l$w,
                     offset = l$off, coef.init = coef.init,
                     penscale = penscale,
-                    model = model, standardize = standardize,
+                    model = model, center = center, standardize = standardize,
                     nlminb.opt = nlminb.opt, ...)
 }
 
@@ -173,6 +173,7 @@ lambdamax.default <- function(x, y, index, weights = rep(1, length(y)),
                               offset = rep(0, length(y)),
                               coef.init = rep(0, ncol(x)),
                               penscale = sqrt, model = LogReg(),
+                              center = TRUE, 
                               standardize = TRUE, nlminb.opt = list(), ...)
 {
   ## Purpose: Function to find the maximal value of the penalty parameter
@@ -214,6 +215,21 @@ lambdamax.default <- function(x, y, index, weights = rep(1, length(y)),
   ## Indices of parameter groups
   ipen.which <- split((1:ncol(x))[!is.na(index)], ipen)
 
+  intercept.which  <- which(apply(x == 1, 2, all))
+
+  if(center){
+    if(length(intercept.which) == 0)
+      stop("Need intercept term")
+
+    if(length(intercept.which) > 1)
+      stop("Multiple intercepts!")
+
+    if(length(intercept.which) == 1 & !is.na(index[intercept.which]))
+      stop("Need unpenalized intercept")
+
+    mu.x <- apply(x[,-intercept.which], 2, mean)
+    x[,-intercept.which] <- sweep(x[,-intercept.which], 2, mu.x)
+  }
   if(standardize){
     stand        <- blockstand(x, ipen.which, inotpen.which)
     x            <- stand$x

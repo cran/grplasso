@@ -12,7 +12,8 @@ control <- grpl.control(tol = tol, trace = 0)
 ##############################################
 
 fit <- grplasso(y ~ Pos.1 * Pos.2, data = splice, lambda = 25, control = control,
-                contrast = list(Pos.1 = "contr.sum", Pos.2 = "contr.sum"))
+                center = FALSE, contrast = list(Pos.1 = "contr.sum",
+                                  Pos.2 = "contr.sum"))
 
 sol <- structure(c(-0.13977233, 0.0226494585308358, 0.0897927902302861, 
 -0.0311859296853295, 0.519851153317134, -0.25546398114419, -0.209672224889056, 
@@ -100,4 +101,3 @@ fit.maxiter <- grplasso(y ~ Pos.1 * Pos.2, data = splice, lambda = c(1, 0.1),
                           Pos.2 = "contr.sum"))
 
 stopifnot(all(!fit.maxiter$converged))
-
