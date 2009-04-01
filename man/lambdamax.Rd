@@ -17,8 +17,8 @@ lambdamax(x, ...)
 
 \method{lambdamax}{default}(x, y, index, weights = rep(1, length(y)),
           offset = rep(0, length(y)), coef.init = rep(0, ncol(x)),
-          penscale = sqrt, model = LogReg(), center = TRUE, standardize = TRUE,
-          nlminb.opt = list(), ...)
+          penscale = sqrt, model = LogReg(), center = TRUE,
+          standardize = TRUE, nlminb.opt = list(), ...)
 }
 \arguments{
   \item{x}{design matrix (including intercept)}
@@ -49,7 +49,8 @@ lambdamax(x, ...)
   \item{center}{logical. If true, the columns of the design matrix will be
     centered (except a possible intercept column).}
   \item{standardize}{logical. If true, the design matrix will be blockwise
-          orthonormalized, such that for each block \eqn{X^TX = n 1}}
+          orthonormalized, such that for each block \eqn{X^TX = n 1}
+          (*after* possible centering).}
   \item{contrasts}{an (optional) list with the contrasts for the factors
     in the model.}
   \item{nlminb.opt}{arguments to be supplied to \code{\link{nlminb}}.}

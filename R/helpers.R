@@ -215,21 +215,28 @@ lambdamax.default <- function(x, y, index, weights = rep(1, length(y)),
   ## Indices of parameter groups
   ipen.which <- split((1:ncol(x))[!is.na(index)], ipen)
 
-  intercept.which  <- which(apply(x == 1, 2, all))
+  intercept.which <- which(apply(x == 1, 2, all))
+  has.intercept   <- length(intercept.which)
+
+  if(!has.intercept & center){
+    message("Couldn't find intercept. Setting center = FALSE.")
+    center <- FALSE
+  }
+
+  if(length(intercept.which) > 1)
+    stop("Multiple intercepts!")
 
   if(center){
-    if(length(intercept.which) == 0)
-      stop("Need intercept term")
+    if(!has.intercept) ## Could be removed; already handled above
+      stop("Need intercept term when using center = TRUE")
 
-    if(length(intercept.which) > 1)
-      stop("Multiple intercepts!")
-
-    if(length(intercept.which) == 1 & !is.na(index[intercept.which]))
-      stop("Need unpenalized intercept")
+    ##if(length(intercept.which) == 1 & !is.na(index[intercept.which]))
+    ##  stop("Need unpenalized intercept")
 
     mu.x <- apply(x[,-intercept.which], 2, mean)
     x[,-intercept.which] <- sweep(x[,-intercept.which], 2, mu.x)
   }
+  
   if(standardize){
     stand        <- blockstand(x, ipen.which, inotpen.which)
     x            <- stand$x

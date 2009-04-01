@@ -114,6 +114,9 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
   if(!is.numeric(index))
     stop("index has to be of type 'numeric'!")
 
+  if(length(index) != ncol(x))
+    stop("length(index) not equal ncol(x)!")
+  
   if(is.unsorted(rev(lambda)))
     warning("lambda values should be sorted in decreasing order")
 
@@ -169,18 +172,27 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
   intercept.which <- which(apply(x == 1, 2, all))
   has.intercept   <- length(intercept.which)
 
+  if(!has.intercept & center){
+    message("Couldn't find intercept. Setting center = FALSE.")
+    center <- FALSE
+  }
+
   if(length(intercept.which) > 1)
     stop("Multiple intercepts!")
 
-  has.intercept.notpen <- is.na(index[intercept.which])
-  
+  if(has.intercept)
+    has.intercept.notpen <- is.na(index[intercept.which])
+  else
+    has.intercept.notpen <- FALSE
+
   others.notpen   <- nrnotpen - has.intercept.notpen
   notpen.int.only <- has.intercept.notpen & !others.notpen
   
-  if(notpen.int.only & !center)
-    warning("Are you sure you want uncentered predictors in a model with intercept?")
+  if(has.intercept & !center & standardize)
+    warning("Are you sure that you don't want to perform centering in a model with intercept and standardized predictors?")
   
-  if(center & others.notpen)
+  ##if(center & others.notpen)
+  if(others.notpen)
     warning("Penalization not adjusted to non-penalized predictors.")
 
   ## Index vector of the penalized parameter groups
@@ -194,8 +206,8 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
     ipen.which <- split((1:ncolx), ipen)
   }
 
-  nrpen      <- length(ipen.which)
-  dict.pen   <- sort(unique(ipen))
+  nrpen    <- length(ipen.which)
+  dict.pen <- sort(unique(ipen))
   
   ## Table of degrees of freedom
   ipen.tab   <- table(ipen)[as.character(dict.pen)]
@@ -203,13 +215,10 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
   x.old <- x
 
   if(center){
-    ##if(length(intercept.which) == 0)
-    ##  stop("Need intercept term")
+    if(!has.intercept) ## could be removed; already handled above
+      stop("Need intercept term when using center = TRUE")
 
-    ##if(length(intercept.which) == 1 & !is.na(index[intercept.which]))
-    ##  stop("Need *unpenalized* intercept")
-
-    mu.x <- apply(x[,-intercept.which], 2, mean)
+    mu.x                 <- apply(x[,-intercept.which], 2, mean)
     x[,-intercept.which] <- sweep(x[,-intercept.which], 2, mu.x)
   }
   

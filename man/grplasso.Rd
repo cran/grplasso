@@ -16,8 +16,8 @@ grplasso(x, ...)
 
 \method{grplasso}{default}(x, y, index, weights = rep(1, length(y)), offset = rep(0,
          length(y)), lambda, coef.init = rep(0, ncol(x)),
-         penscale = sqrt, model = LogReg(), center = TRUE, standardize = TRUE,
-         control = grpl.control(), ...)
+         penscale = sqrt, model = LogReg(), center = TRUE,
+         standardize = TRUE, control = grpl.control(), ...)
 }
 \arguments{
   \item{x}{design matrix (including intercept)}
@@ -52,7 +52,8 @@ grplasso(x, ...)
   \item{center}{logical. If true, the columns of the design matrix will be
     centered (except a possible intercept column).}
   \item{standardize}{logical. If true, the design matrix will be
-    blockwise orthonormalized such that for each block \eqn{X^TX = n 1}.}
+    blockwise orthonormalized such that for each block \eqn{X^TX = n 1}
+         (*after* possible centering).}
   \item{control}{options for the fitting algorithm, see
     \code{\link{grpl.control}}.}
   \item{contrasts}{an optional list. See the 'contrasts.arg' of

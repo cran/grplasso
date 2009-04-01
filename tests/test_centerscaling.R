@@ -10,9 +10,6 @@ y <- 4 * sin(x[,1]) + x[,2]^2 + rnorm(n)
 
 x.new <- matrix(runif(n * p, min = -2.5, max = 2.5), nrow = n, ncol = p)
 
-center  <- TRUE
-scaling <- TRUE
-
 shift <- 10
 scale <- 10
 
@@ -44,3 +41,64 @@ stopifnot(all.equal(int.resc, coef(fit.resc)[1,], tol = 10^-7))
 stopifnot(all.equal(predict(fit, newdata = cbind(1,x.new)),
                     predict(fit.resc,
                             newdata = cbind(1, shift + scale * x.new))))
+
+## Check whether every case is running, including function lambda.max
+
+## center = TRUE & unpenalized intercept
+
+x.use <- cbind(1, x)
+index <- c(NA, 1:10)
+
+lambda.max <- lambdamax(x.use, y, index, model = LinReg())
+lambda     <- lambda.max * c(1, 0.1)
+
+fit1 <- grplasso(x.use, y, index, model = LinReg(), lambda = lambda,
+                 center = TRUE)
+
+## center = TRUE & penalized intercept
+
+x.use <- cbind(1, x)
+index <- c(99, 1:10)
+
+lambda.max <- lambdamax(x.use, y, index, model = LinReg())
+lambda     <- lambda.max * c(1, 0.1)
+
+fit2 <- grplasso(x.use, y, index, model = LinReg(), lambda = lambda,
+                 center = TRUE)
+
+## center = TRUE & *no* intercept
+x.use <- cbind(x)
+index <- c(1:10)
+
+lambda.max <- lambdamax(x.use, y, index, model = LinReg())
+lambda     <- lambda.max * c(1, 0.1)
+
+fit3 <- grplasso(x.use, y, index, model = LinReg(), lambda = lambda,
+                 center = TRUE)
+
+## center = FALSE & *no* intercept
+x.use <- cbind(x)
+index <- c(1:10)
+
+lambda.max <- lambdamax(x.use, y, index, model = LinReg(),
+                        center = FALSE)
+lambda     <- lambda.max * c(1, 0.1)
+
+fit4 <- grplasso(x.use, y, index, model = LinReg(), lambda = lambda,
+                 center = FALSE)
+
+## Check whether fit3 and fit4 are the same
+stopifnot(all.equal(coef(fit3), coef(fit4)))
+
+
+## center = FALSE & standardize = TRUE
+x.use <- cbind(1,x)
+index <- c(NA, 1:10)
+
+lambda.max <- lambdamax(x.use, y, index, model = LinReg(),
+                        center = FALSE)
+lambda     <- lambda.max * c(1, 0.1)
+
+fit5 <- grplasso(x.use, y, index, model = LinReg(), lambda = lambda,
+                 center = FALSE)
+
