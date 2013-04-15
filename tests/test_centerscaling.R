@@ -42,7 +42,25 @@ stopifnot(all.equal(predict(fit, newdata = cbind(1,x.new)),
                     predict(fit.resc,
                             newdata = cbind(1, shift + scale * x.new))))
 
-## Check whether every case is running, including function lambda.max
+## Check situation where we have an unpenalized covariate and re-scaling
+
+index <- c(NA, 1:9, NA)
+
+fit.a <- grplasso(cbind(1,x), y, index = index,
+                  lambda = c(50, 10), center = TRUE, standardize = TRUE, 
+                  model = LinReg(), control = grpl.control(trace = 0))
+
+fit.b <- grplasso(cbind(1,x.resc), y, index = index,
+                  lambda = c(50, 10), center = TRUE, standardize = TRUE, 
+                  model = LinReg(), control = grpl.control(trace = 0))
+
+stopifnot(all.equal(coef(fit.a)[10,], scale * coef(fit.b)[10,]))
+
+########################################################################
+##                                                                    ##
+## Check whether every case is running, including function lambda.max ##
+##                                                                    ##
+########################################################################
 
 ## center = TRUE & unpenalized intercept
 

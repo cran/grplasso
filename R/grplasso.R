@@ -391,7 +391,8 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
           ## Set to 0 if the value is very small compared to the current
           ## coefficient estimate
 
-          d <- zapsmall(c(coef[ind], d))[2]
+          d <- zapsmall(c(coef[ind], d), digits = 16)[2]
+
           
           ## If d != 0, we have to do a line search
           if(d != 0){
@@ -399,19 +400,19 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
             coef.test      <- coef
             coef.test[ind] <- coef[ind] + scale * d
             
-            Xjd <- Xj * d
-            eta.test     <- eta + Xjd * scale
+            Xjd       <- Xj * d
+            eta.test  <- eta + Xjd * scale
 
             if(line.search){
               qh    <- sum(ngrad * d)
 
-              fn.val0      <- nloglik(y, eta, weights, ...)
-              fn.val.test  <- nloglik(y, eta.test, weights, ...)
+              fn.val0     <- nloglik(y, eta, weights, ...)
+              fn.val.test <- nloglik(y, eta.test, weights, ...)
 
-              qh <- zapsmall(c(qh, fn.val0))[1]
-            
+              qh <- zapsmall(c(qh, fn.val0), digits = 16)[1]
+
               ## Armijo line search. Stop if scale gets too small (10^-30).
-              while(fn.val.test - fn.val0 > sigma * scale * qh & scale > 10^-30){
+              while(fn.val.test > fn.val0 + sigma * scale * qh & scale > 10^-30){
                 ##cat("Doing line search (nonpen)\n")
                 scale          <- scale * beta
                 coef.test[ind] <- coef[ind] + scale * d
@@ -420,6 +421,8 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
               }
             } ## end if(line.search)
             if(scale <= 10^-30){ ## Do nothing in that case
+              #cat("Running into problems with scale\n")
+              #cat("qh", qh, "d", d, "\n")
               ## coef.test <- coef 
               ## eta.test  <- eta
               ## mu        <- mu
@@ -499,10 +502,12 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
             fn.val.test    <- nloglik(y, eta.test, weights, ...)
             fn.val0        <- nloglik(y, eta, weights, ...)
           
-            left <- fn.val.test - fn.val0 +
-              l  * penscale(npar) * sqrt(crossprod(coef.test[ind])) -
-                l  * penscale(npar) * sqrt(cross.coef.ind)
-            right <- sigma * scale * qh
+            left <- fn.val.test +
+              l  * penscale(npar) * sqrt(crossprod(coef.test[ind]))
+                
+            right <- fn.val0 + l  * penscale(npar) * sqrt(cross.coef.ind) +
+              sigma * scale * qh
+            
             while(left > right & scale > 10^-30){
               ##cat("Doing line search (pen)\n")
               scale          <- scale * beta
@@ -510,10 +515,11 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
               eta.test       <- eta + Xjd * scale
               fn.val.test    <- nloglik(y, eta.test, weights, ...)
             
-              left <- fn.val.test - fn.val0 +
-                l  * penscale(npar) * sqrt(crossprod(coef.test[ind])) -
-                  l  * penscale(npar) * sqrt(cross.coef.ind)
-              right <- sigma * scale * qh
+              left <- fn.val.test +
+                l  * penscale(npar) * sqrt(crossprod(coef.test[ind]))
+                  
+              right <- fn.val0 + l * penscale(npar) * sqrt(cross.coef.ind) +
+                sigma * scale * qh
             } ## end while(left > right & qh != 0)
           } ## end if(line.search)
           ## If we escaped the while loop because 'scale' is too small
@@ -545,7 +551,7 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
       
       ## Relative difference with respect to function value (penalized
       ## likelihood)
-      d.fn <- (fn.val.old - fn.val) / (1 + abs(fn.val))
+      d.fn <- abs(fn.val.old - fn.val) / (1 + abs(fn.val))
 
       ## Print out improvement if desired (trace >= 2)
       if(trace >= 2){

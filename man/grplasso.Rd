@@ -5,11 +5,10 @@
 \title{Function to fit a solution of a group lasso problem}
 \description{Fits the solution of a group lasso problem for a model of type
   \code{grpl.model}.}  
-\synopsis{grplasso(x, ...)}
 \usage{
 grplasso(x, ...)
 
-\method{grplasso}{formula}(formula, nonpen = ~ 1, data, weights = rep(1, length(y)),
+\method{grplasso}{formula}(formula, nonpen = ~ 1, data, weights,
          subset, na.action, lambda, coef.init, penscale = sqrt,
          model = LogReg(), center = TRUE, standardize = TRUE,
          control = grpl.control(), contrasts = NULL, ...)

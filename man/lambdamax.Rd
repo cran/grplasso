@@ -6,14 +6,14 @@
 \description{Determines the value of the penalty parameter lambda when
   the first penalized parameter group enters the model.
 }
-\synopsis{lambdamax(x, ...)}
 
 \usage{
 lambdamax(x, ...)
 
 \method{lambdamax}{formula}(formula, nonpen = ~1, data, weights, subset,
           na.action, coef.init, penscale = sqrt, model = LogReg(),
-          standardize = TRUE, contrasts = NULL, nlminb.opt = list(), ...)
+          center = TRUE, standardize = TRUE, contrasts = NULL,
+          nlminb.opt = list(), ...)
 
 \method{lambdamax}{default}(x, y, index, weights = rep(1, length(y)),
           offset = rep(0, length(y)), coef.init = rep(0, ncol(x)),
