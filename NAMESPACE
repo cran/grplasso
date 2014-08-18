@@ -1,3 +1,5 @@
+import(methods)
+
 export(grpl.model,
        LogReg, LinReg, PoissReg,
        grpl.control)
