@@ -23,7 +23,7 @@ sol <- structure(c(-0.13977233, 0.0226494585308358, 0.0897927902302861,
     "Pos.11:Pos.22", "Pos.12:Pos.22", "Pos.13:Pos.22", "Pos.11:Pos.23", 
     "Pos.12:Pos.23", "Pos.13:Pos.23"), "25"))
 
-stopifnot(all.equal(coef(fit), sol, tol = 10^-4))
+stopifnot(all.equal(coef(fit), sol, tol = 10^-6))
 
 ##################################################################
 ##                                                              ##
@@ -87,6 +87,11 @@ d.coef[1] <- d.coef[1] + shift
 
 if(max(abs(d.coef) / (1 + abs(coef(fit1)))) > 5 * 10^-4)
   stop("Inconsistent result when using offset (d.coef)")
+
+pred.new <- predict(fit2, newdata = splice) ## didn't work in earlier version
+pred.in  <- predict(fit2)
+
+stopifnot(all.equal(pred.new, pred.in))
 
 #################################################
 ##                                             ##

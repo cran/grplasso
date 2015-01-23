@@ -119,10 +119,24 @@ predict.grplasso <- function(object, newdata,
       .checkMFClasses(cl, m)
     x <- model.matrix(Terms, m, contrasts = object$contrasts)
     pred <- x %*% coef(object)
-    if(!is.null(offset)){
-      offset <- eval(attr(tt, "variables")[[offset]], newdata)
-      pred <- pred + offset
-    }
+
+    ## new code for offset handling
+    offset <- rep(0, nrow(x))
+    if (!is.null(off.num <- attr(tt, "offset"))) 
+      for (i in off.num) offset <- offset +
+        eval(attr(tt, "variables")[[i + 1]], newdata)
+    if (!is.null(object$call$offset)) 
+      offset <- offset + eval(object$call$offset, newdata)
+
+    pred <- pred + offset
+    ## end new code for offset handling
+
+    ## old code
+##-     if(!is.null(offset)){
+##-       offset <- eval(attr(tt, "variables")[[offset]], newdata)
+##-       pred <- pred + offset
+##-     }
+    ## end old code
   }else{ ## if the object comes from grplasso.default
     x <- as.matrix(newdata)
     pred <- x %*% coef(object)

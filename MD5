@@ -1,10 +1,10 @@
-9f7e713431a340859facbafbc879928c *DESCRIPTION
+3186b7a93837f0bef1fc63c81a1860bb *DESCRIPTION
 426e65a2b62349ef5d98cb332603d927 *NAMESPACE
 d43d39e4e9d36371808a3326ab905c48 *R/control.R
 122105574f98c6198a94a350377d17f2 *R/family.R
 c2f522c0eb20c90276eef19ccee0795f *R/grplasso.R
 ca8d4e676aac39354ca2926fbc8db6c5 *R/helpers.R
-fdb252793cdf771a12b58a5457e9f2f8 *R/methods.R
+4b88966877544fe45cb5309977f9877a *R/methods.R
 cec98b168ba0574c54dac9508798709c *R/zzz.R
 78b69ead6fe8a25573745e83eaa39834 *data/splice.rda
 6975582963d7c2fca1204569b1cf1f42 *man/grpl.control-class.Rd
@@ -20,4 +20,4 @@ c4e638f2bb275658173a9dec47da3326 *man/lambdamax.Rd
 01162e036c8f7cc88b55480dc8840f31 *man/splice.Rd
 82f58dffe672e67c2e220056530bd974 *tests/test_centerscaling.R
 ddad6cd6f159567d576441bd8fdd50a2 *tests/test_extractor.R
-d46d8db5780eea7c1582014f2c7c755d *tests/test_grplasso.R
+30e00b836c0726a4c5e99e0932d1b23a *tests/test_grplasso.R
