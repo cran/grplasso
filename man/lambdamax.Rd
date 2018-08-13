@@ -2,7 +2,7 @@
 \alias{lambdamax}
 \alias{lambdamax.default}
 \alias{lambdamax.formula}
-\title{Function to find the maximal value of the penalty parameter lambda}
+\title{Function to Find the Maximal Value of the Penalty Parameter Lambda}
 \description{Determines the value of the penalty parameter lambda when
   the first penalized parameter group enters the model.
 }
@@ -59,6 +59,9 @@ lambdamax(x, ...)
 }
 \details{Uses \code{\link{nlminb}} to optimize the non-penalized parameters.}
 \value{An object of type numeric is returned.}
+\references{Lukas Meier, Sara van de Geer and Peter B\"uhlmann (2008), \emph{The
+    Group Lasso for Logistic Regression}, Journal of the Royal
+  Statistical Society, 70 (1), 53 - 71} 
 \examples{
 data(splice)
 lambdamax(y ~ ., data = splice, model = LogReg(), center = TRUE,

@@ -3,8 +3,8 @@
 \alias{LogReg}
 \alias{LinReg}
 \alias{PoissReg}
-\title{Group Lasso models}
-\description{Generates models to be used for the Group Lasso algorithm.}
+\title{Group Lasso Models}
+\description{Generates models to be used for the group lasso algorithm.}
 \usage{
 grpl.model(invlink, link, nloglik, ngradient, nhessian, check,
            name = "user-specified", comment = "user-specified")

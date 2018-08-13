@@ -3,7 +3,7 @@
 \title{Options for the Group Lasso Algorithm}
 \description{
   Definition of options such as bounds on the Hessian,
-  convergence criteria and output management for the Group Lasso algorithm.
+  convergence criteria and output management for the group lasso algorithm.
 }
 \usage{
 grpl.control(save.x = FALSE, save.y = TRUE,

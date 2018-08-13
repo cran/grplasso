@@ -1,14 +1,14 @@
 Package: grplasso
 Type: Package
-Title: Fitting user specified models with Group Lasso penalty
-Version: 0.4-5
-Date: 2015-01-23
+Title: Fitting User-Specified Models with Group Lasso Penalty
+Version: 0.4-6
+Date: 2018-08-13
 Author: Lukas Meier
 Maintainer: Lukas Meier <meier@stat.math.ethz.ch>
-Description: Fits user specified (GLM-) models with Group Lasso penalty
+Description: Fits user-specified (GLM-) models with group lasso penalty.
 Depends: methods
 License: GPL
-Packaged: 2015-01-23 13:53:18 UTC; meierluk
 NeedsCompilation: no
+Packaged: 2018-08-13 14:05:07 UTC; meierluk
 Repository: CRAN
-Date/Publication: 2015-01-23 16:12:33
+Date/Publication: 2018-08-13 14:50:02 UTC

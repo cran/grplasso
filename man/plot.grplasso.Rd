@@ -1,6 +1,6 @@
 \name{plot.grplasso}
 \alias{plot.grplasso}
-\title{Plots the solution path of a grplasso object}
+\title{Plots the Solution Path of a grplasso Object}
 \description{Plots the solution path of a \code{grplasso} object.}
 \usage{
 \method{plot}{grplasso}(x, type = "coefficients", col = NULL, ...)

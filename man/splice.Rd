@@ -1,7 +1,7 @@
 \name{splice}
 \alias{splice}
 \docType{data}
-\title{Dataset of human donor splice sites}
+\title{Dataset of Human Donor Splice Sites}
 \description{
 Dataset of 400 human donor splice sites with a sequence length of 7 base
 pairs.

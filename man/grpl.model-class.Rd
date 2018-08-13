@@ -5,7 +5,7 @@
 \title{Class "grpl.model": Group Lasso Models}
 \description{Objects of class "grpl.model" define link function, negative
 log-likelihood and corresponding gradient and Hessian for the model to
-be used in a Group Lasso problem.} 
+be used in a group lasso problem.} 
 \section{Objects from the Class}{
 Objects can be created by calls of the form \code{grpl.model(...)}}
 \section{Slots}{

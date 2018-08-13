@@ -1,7 +1,7 @@
 \name{predict.grplasso}
 \alias{predict.grplasso}
 
-\title{Predict method for grplasso objects}
+\title{Predict Method for grplasso Objects}
 \description{
   Obtains predictions from a \code{grplasso} object. 
 }

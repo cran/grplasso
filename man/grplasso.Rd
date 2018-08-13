@@ -2,7 +2,7 @@
 \alias{grplasso}
 \alias{grplasso.default}
 \alias{grplasso.formula}
-\title{Function to fit a solution of a group lasso problem}
+\title{Function to Fit a Solution of a Group Lasso Problem}
 \description{Fits the solution of a group lasso problem for a model of type
   \code{grpl.model}.}  
 \usage{
@@ -82,8 +82,7 @@ grplasso(x, ...)
 }
 \references{Lukas Meier, Sara van de Geer and Peter B\"uhlmann (2008), \emph{The
     Group Lasso for Logistic Regression}, Journal of the Royal
-  Statistical Society, 70 (1), 53 - 71, see also
-    \url{http://stat.ethz.ch/~meier/logistic-grouplasso.php}} 
+  Statistical Society, 70 (1), 53 - 71} 
 \author{Lukas Meier, \email{meier@stat.math.ethz.ch}}
 \examples{
 ## Use the Logistic Group Lasso on the splice data set
