@@ -1,12 +1,12 @@
-5cc2e1545bdb9b496aa9d497798dad33 *DESCRIPTION
+199a98665ea9bdf4d80f4b3ed6e54ce7 *DESCRIPTION
 9cb93feea48875fb4a6e99f3ab24f955 *NAMESPACE
 d43d39e4e9d36371808a3326ab905c48 *R/control.R
 122105574f98c6198a94a350377d17f2 *R/family.R
-c2f522c0eb20c90276eef19ccee0795f *R/grplasso.R
+b4336bb6b4f7e8cc9672e0028c308e6c *R/grplasso.R
 ca8d4e676aac39354ca2926fbc8db6c5 *R/helpers.R
 4b88966877544fe45cb5309977f9877a *R/methods.R
 cec98b168ba0574c54dac9508798709c *R/zzz.R
-1859997bf5f3edeaa0978a4bb8f4fb02 *build/partial.rdb
+fc2956cc8246639ba39540fd70b6c629 *build/partial.rdb
 78b69ead6fe8a25573745e83eaa39834 *data/splice.rda
 6975582963d7c2fca1204569b1cf1f42 *man/grpl.control-class.Rd
 3841cd59dd88dc99b8ec5faeaecc2d65 *man/grpl.control.Rd

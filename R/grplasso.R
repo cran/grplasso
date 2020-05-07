@@ -472,7 +472,9 @@ grplasso.default <- function(x, y, index, weights = rep(1, length(y)),
         }
         
         cond       <- -ngrad + nH * coef.ind
-        cond.norm2 <- crossprod(cond)
+        cond.norm2 <- c(crossprod(cond)) ## was: crossprod(cond)
+        ## Because of warning message:
+        ## Recycling array of length 1 in vector-array arithmetic is deprecated.
         
         ## Check the condition whether the minimum is at the non-differentiable
         ## position (-coef.ind) via the condition on the subgradient.
